@@ -6,6 +6,7 @@ class Monde {
   constructor(graine = CONFIG.graine, nombre = CONFIG.chauveSouris.nombre) {
     this.graine = graine;
     this.grotte = new Cave(CONFIG.monde.largeur, CONFIG.monde.hauteur, graine);
+    this.sonar = new Sonar(this.grotte, graine);
     this.chauvesSouris = [];
     this.temps = 0;           // secondes simulées
     this.pasCourant = 0;
@@ -37,6 +38,7 @@ class Monde {
   pas() {
     for (const b of this.chauvesSouris) b.penser(this);
     for (const b of this.chauvesSouris) b.update();
+    this.sonar.pas([]);
     this.temps += CONFIG.pasTemps;
     this.pasCourant++;
   }
@@ -44,6 +46,7 @@ class Monde {
   /** Dessine le monde (le contexte est déjà mis à l'échelle) */
   dessiner(ctx, options = {}) {
     if (options.lumiere) this.grotte.dessinerGeometrie(ctx, 0.35);
+    this.sonar.dessiner(ctx, { jour: 0, ondes: options.ondes !== false });
     for (const b of this.chauvesSouris) b.dessiner(ctx);
   }
 }
