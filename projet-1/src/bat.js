@@ -29,8 +29,9 @@ class Bat extends Vehicle {
     this.id = ++compteurChauvesSouris;
     this.etat = 'repos';
     this.energie = CONFIG.chauveSouris.energieDepart;
-    this.phaseAiles = Math.random() * Math.PI * 2;
+    this.phaseAiles = random(Math.PI * 2);
     this.eclat = 0;           // éclat lumineux après un cri de sonar (0..1)
+    this.forces = {};         // dernière force de chaque comportement (inspecteur, vecteurs)
   }
 
   /** Remet le compteur d'identifiants à zéro (nouvelle simulation) */
@@ -40,6 +41,28 @@ class Bat extends Vehicle {
 
   get couleur() {
     return COULEURS_ETAT[this.etat] || COULEURS_ETAT.errance;
+  }
+
+  /**
+   * Calcule les forces de chaque comportement actif selon l'état, les pondère et les applique.
+   * `monde` donne accès à la grotte (et plus tard aux papillons, au hibou, à la colonie).
+   */
+  penser(monde) {
+    this.forces = {};
+    if (this.etat === 'repos') return;
+    const poids = CONFIG.poids;
+    if (this.etat === 'errance') {
+      this.forces.wander = this.wander().mult(poids.wander);
+    }
+    this.forces.contention = this.contenir(monde.grotte).mult(poids.contention);
+    for (const f of Object.values(this.forces)) this.applyForce(f);
+  }
+
+  /** Un pas physique, puis le battement d'ailes (plus vite quand elle va vite) */
+  update() {
+    super.update();
+    this.phaseAiles += 0.22 + this.vel.mag() * 0.05;
+    this.eclat *= 0.93;
   }
 
   /** Dessin d'une chauve-souris : silhouette sombre, contour de la couleur de son état */

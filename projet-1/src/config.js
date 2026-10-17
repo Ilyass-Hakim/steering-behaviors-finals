@@ -15,6 +15,12 @@ const CONFIG = {
     energieDepart: 0.8,
   },
 
+  // Poids de chaque force dans la somme des comportements d'une chauve-souris
+  poids: {
+    wander: 1.0,
+    contention: 1.6,
+  },
+
   // Couleur de chaque force (légende, vecteurs, jauges de l'inspecteur)
   couleurs: {
     wander: '#7dd3fc',
