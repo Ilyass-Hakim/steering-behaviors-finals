@@ -35,6 +35,7 @@ class Bat extends Vehicle {
     this.tempsChasse = 0;
     this.satiete = 0;         // pas pendant lesquels elle ne chasse plus (vient de manger)
     this.captures = 0;
+    this.calme = 0;           // pas écoulés loin du hibou avant de se calmer
     this.vitesseBase = CONFIG.chauveSouris.vitesseMax;
     this.delaiDepart = 0;     // pas avant de quitter le gîte (départ échelonné)
     this.decalage = { x: 0, y: 0 };   // place individuelle dans la nuée
@@ -63,8 +64,10 @@ class Bat extends Vehicle {
       return;
     }
     this.crier(monde);
+    this.majFuite(monde);
     this.majChasse(monde);
-    this.maxSpeed = this.vitesseBase * (this.etat === 'chasse' ? CONFIG.chauveSouris.boostChasse : 1);
+    const boost = this.etat === 'chasse' ? CONFIG.chauveSouris.boostChasse : this.etat === 'fuite' ? 1.25 : 1;
+    this.maxSpeed = this.vitesseBase * boost;
     const poids = { ...CONFIG.poids.commun, ...(CONFIG.poids[this.etat] || {}) };
     const ajouter = (nom, force) => {
       if (monde.actifs[nom] === false || !poids[nom]) return;
@@ -72,6 +75,17 @@ class Bat extends Vehicle {
     };
 
     const voisins = monde.voisinsDe(this, 120);
+    const evitement = this.eviter(monde.grotte);
+    if (this.etat === 'fuite' && monde.hibou) {
+      // FLEE : s'éloigner du hibou ; l'alignement avec les voisines fait fuir le groupe ensemble.
+      // Quand une paroi se rapproche, la fuite cède la place à l'évitement (sinon elle plaque
+      // la chauve-souris contre la roche).
+      const cede = Math.max(0.2, 1 - evitement.mag() / 0.5);
+      ajouter('flee', this.flee(monde.hibou.pos).mult(cede));
+      const b = this.boids(voisins.filter((o) => o.etat === 'fuite'));
+      ajouter('separation', b.separation);
+      ajouter('alignment', b.alignment);
+    }
     if (this.etat === 'sortie' || this.etat === 'errance') {
       const b = this.boids(voisins);
       ajouter('separation', b.separation);
@@ -90,9 +104,31 @@ class Bat extends Vehicle {
       if (p.vel.mag() < 0.3) ajouter('seek', this.seek(p.pos));
       else ajouter('pursue', this.pursue(p));
     }
-    ajouter('avoid', this.eviter(monde.grotte));
+    ajouter('avoid', evitement);
     ajouter('contention', this.contenir(monde.grotte));
     for (const f of Object.values(this.forces)) this.applyForce(f);
+  }
+
+  /**
+   * Peur du hibou : toute chauve-souris en vol à moins de `rayonPanique` du hibou passe en
+   * fuite. Elle se calme quand il est loin depuis une seconde, ou parti.
+   */
+  majFuite(monde) {
+    const h = monde.hibou;
+    if (this.etat === 'fuite') {
+      const loin = !h || Math.hypot(h.pos.x - this.pos.x, h.pos.y - this.pos.y) > CONFIG.hibou.rayonPanique * 1.3;
+      this.calme = loin ? this.calme + 1 : 0;
+      if (this.calme > 60) { this.etat = 'errance'; this.calme = 0; this.satiete = 60; }
+    } else if (h && (this.etat === 'errance' || this.etat === 'chasse' || this.etat === 'sortie')) {
+      const d = Math.hypot(h.pos.x - this.pos.x, h.pos.y - this.pos.y);
+      if (d < CONFIG.hibou.rayonPanique) {
+        this.etat = 'fuite';
+        this.cible = null;
+        this.prediction = null;
+        this.calme = 0;
+        monde.stats.alertes++;
+      }
+    }
   }
 
   /**

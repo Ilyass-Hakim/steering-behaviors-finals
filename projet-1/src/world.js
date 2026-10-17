@@ -12,6 +12,8 @@ class Monde {
     this.actifs = {};         // comportements désactivés : { wander: false, ... }
     this.chauvesSouris = [];
     this.papillons = [];
+    this.hibou = null;
+    this.hibouPrevu = null;   // date (s de la nuit) de la prochaine entrée du hibou
     this.stats = { captures: 0, echappes: 0, alertes: 0 };
     this.journal = [];        // derniers événements : { t, texte, type }
     this.temps = 0;           // secondes simulées
@@ -110,6 +112,39 @@ class Monde {
     this.noter(`Chauve-souris n°${bat.id} a capturé un papillon`, 'capture');
   }
 
+  /** La chauve-souris en vol la plus proche d'un point (cible du hibou) */
+  chauveSourisLaPlusProche(pos) {
+    let meilleure = null;
+    let dmin = Infinity;
+    for (const b of this.chauvesSouris) {
+      if (b.etat === 'repos') continue;
+      const d = (b.pos.x - pos.x) ** 2 + (b.pos.y - pos.y) ** 2;
+      if (d < dmin) { dmin = d; meilleure = b; }
+    }
+    return meilleure;
+  }
+
+  /** Fait entrer le hibou par l'entrée de la grotte */
+  appelerHibou() {
+    if (this.hibou) return;
+    const g = this.grotte;
+    this.hibou = new Owl(g.w - 30, g.entree.y);
+    this.noter('Le hibou entre dans la grotte', 'hibou');
+  }
+
+  /** Planifie l'entrée du hibou pendant la nuit, puis le retire quand il est reparti */
+  gererHibou() {
+    if (this.cycle.phase === 'nuit' && !this.hibou && this.hibouPrevu !== null && this.cycle.temps >= this.hibouPrevu) {
+      this.hibouPrevu = null;
+      this.appelerHibou();
+    }
+    if (this.hibou) {
+      this.hibou.penser(this);
+      this.hibou.update();
+      if (this.hibou.parti) this.hibou = null;
+    }
+  }
+
   /** Ajoute une ligne au journal de la nuit (les 40 dernières sont gardées) */
   noter(texte, type = 'info') {
     this.journal.push({ t: this.temps, texte, type });
@@ -145,6 +180,8 @@ class Monde {
       this.chef = new Chef(this.cheminColonie());
       for (const b of this.chauvesSouris) if (b.etat === 'repos') b.delaiDepart = Math.floor(random(1, 280));
     } else if (phase === 'nuit') {
+      const [a, b] = CONFIG.hibouApparitionNuit;
+      this.hibouPrevu = random(a, b);
       this.chef = null;
       for (const b of this.chauvesSouris) {
         if (b.etat === 'repos') b.decoller(this, 'errance');
@@ -166,11 +203,12 @@ class Monde {
   /** Avance la simulation d'un pas de 1/60 s */
   pas() {
     if (this.chef) { this.chef.penser(this); this.chef.update(); }
+    this.gererHibou();
     for (const m of this.papillons) m.penser(this);
     for (const b of this.chauvesSouris) b.penser(this);
     for (const m of this.papillons) m.update();
     for (const b of this.chauvesSouris) b.update();
-    this.sonar.pas(this.papillons.filter((m) => m.etat !== 'mange'));
+    this.sonar.pas(this.papillons.filter((m) => m.etat !== 'mange').concat(this.hibou ? [this.hibou] : []));
     const nouvelle = this.cycle.avancer(CONFIG.pasTemps);
     if (nouvelle) this.surPhase(nouvelle);
     this.temps += CONFIG.pasTemps;
@@ -182,7 +220,9 @@ class Monde {
     if (options.lumiere) this.grotte.dessinerGeometrie(ctx, 0.35);
     this.sonar.dessiner(ctx, { jour: 0, ondes: options.ondes !== false });
     if (this.chef) this.chef.dessiner(ctx, options.chemin);
+    if (this.hibou) this.hibou.dessinerZone(ctx, this.temps);
     for (const m of this.papillons) m.dessiner(ctx);
+    if (this.hibou) this.hibou.dessiner(ctx);
     for (const b of this.chauvesSouris) b.dessinerChasse(ctx);
     for (const m of this.papillons) m.dessinerFuite(ctx);
     if (options.rayons) for (const b of this.chauvesSouris) b.dessinerRayons(ctx);
