@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Écho : une nuit de chauves-souris dans une grotte noire, révélée par leur sonar. Tous les steering behaviors de Reynolds en une simulation p5.js.">
   <title>Écho — une nuit de chauves-souris</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23b79cff'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23b79cff' stroke-opacity='.6'/%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%23b79cff' stroke-opacity='.3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
@@ -10,9 +11,156 @@
 <body>
   <main id="scene" aria-label="Grotte des chauves-souris"></main>
 
+  <!-- Barre du haut : marque, nuit en cours, frise des phases -->
+  <header id="hud" class="verre">
+    <div class="marque">
+      <svg class="sonar-icone" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="3.2" fill="currentColor"/>
+        <circle cx="16" cy="16" r="8" fill="none" stroke="currentColor" stroke-opacity=".6"/>
+        <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+      </svg>
+      <div>
+        <h1>ÉCHO</h1>
+        <p>une nuit de chauves-souris</p>
+      </div>
+    </div>
+    <div class="nuit">
+      <span id="nuit-num">Nuit n°1</span>
+      <strong id="phase-nom">Crépuscule</strong>
+      <span id="phase-temps" class="discret">0:00</span>
+    </div>
+    <ol id="frise" aria-label="Phases de la nuit"></ol>
+  </header>
+
+  <!-- Journal des événements -->
+  <section id="journal" class="verre" aria-live="polite">
+    <h2>Journal de la nuit</h2>
+    <ul id="journal-liste"></ul>
+  </section>
+
+  <!-- Commandes de lecture -->
+  <nav id="commandes" class="verre" aria-label="Commandes">
+    <button id="btn-pause" class="icone" title="Pause / lecture (Espace)" aria-label="Pause">
+      <svg viewBox="0 0 24 24"><path id="icone-pause" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>
+    </button>
+    <div class="segments" role="group" aria-label="Vitesse">
+      <button data-vitesse="0.5">½×</button>
+      <button data-vitesse="1" class="actif">1×</button>
+      <button data-vitesse="2">2×</button>
+      <button data-vitesse="4">4×</button>
+    </div>
+    <span class="sep"></span>
+    <button id="btn-phase" class="texte" title="Passer à la phase suivante (N)">Phase suivante</button>
+    <button id="btn-hibou" class="texte alerte" title="Faire entrer le hibou (H)">Appeler le hibou</button>
+    <span class="sep"></span>
+    <button id="btn-grotte" class="texte" title="Nouvelle grotte (G)">Nouvelle grotte</button>
+    <button id="btn-aide" class="icone" title="Raccourcis (?)" aria-label="Aide">?</button>
+  </nav>
+
+  <!-- Panneau latéral -->
+  <button id="panneau-bouton" class="verre icone" title="Afficher / masquer le panneau (Tab)" aria-label="Panneau" aria-expanded="true">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+  </button>
+  <aside id="panneau" class="verre">
+    <details open>
+      <summary>Steering behaviors <small id="comportements-total"></small></summary>
+      <p class="aide-texte">Chaque ligne est un comportement de Reynolds. Le nombre indique combien d’entités l’utilisent <em>en ce moment</em>. Décochez-en un pour voir ce que la simulation devient sans lui.</p>
+      <ul id="liste-comportements"></ul>
+    </details>
+
+    <details id="inspecteur" open>
+      <summary>Inspecteur <small id="inspecteur-titre">cliquez une chauve-souris</small></summary>
+      <div id="inspecteur-corps" class="vide">
+        <p class="aide-texte">Cliquez sur une chauve-souris dans la grotte : ses rayons, son cercle d’errance et ses forces (une flèche par comportement) s’affichent, avec leur intensité ici.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Réglages</summary>
+      <label class="reglage">Chauves-souris <output id="o-nombre">36</output>
+        <input id="r-nombre" type="range" min="8" max="72" step="2" value="36">
+      </label>
+      <label class="reglage">Papillons <output id="o-papillons">10</output>
+        <input id="r-papillons" type="range" min="0" max="24" step="1" value="10">
+      </label>
+      <label class="reglage">Portée du sonar <output id="o-portee">270</output>
+        <input id="r-portee" type="range" min="150" max="420" step="10" value="270">
+      </label>
+      <label class="reglage">Vitesse de vol <output id="o-vitesse">3.3</output>
+        <input id="r-vitesse" type="range" min="2" max="5" step="0.1" value="3.3">
+      </label>
+    </details>
+
+    <details>
+      <summary>Affichage</summary>
+      <label class="bascule"><input type="checkbox" id="a-ondes" checked><span></span>Ondes du sonar</label>
+      <label class="bascule"><input type="checkbox" id="a-viseurs" checked><span></span>Viseurs de poursuite et de fuite</label>
+      <label class="bascule"><input type="checkbox" id="a-rayons"><span></span>Rayons d’évitement (toutes)</label>
+      <label class="bascule"><input type="checkbox" id="a-vecteurs"><span></span>Vecteurs de forces (toutes)</label>
+      <label class="bascule"><input type="checkbox" id="a-errance"><span></span>Cercles d’errance</label>
+      <label class="bascule"><input type="checkbox" id="a-chemin"><span></span>Chemin du chef de colonie</label>
+      <label class="bascule"><input type="checkbox" id="a-lumiere"><span></span>Allumer la grotte (mode lumière)</label>
+    </details>
+
+    <details open>
+      <summary>Statistiques</summary>
+      <dl id="stats">
+        <div><dt>Papillons capturés</dt><dd id="s-captures">0</dd></div>
+        <div><dt>Papillons échappés</dt><dd id="s-echappes">0</dd></div>
+        <div><dt>Alertes au hibou</dt><dd id="s-alertes">0</dd></div>
+        <div><dt>Au gîte</dt><dd id="s-gite">0</dd></div>
+        <div><dt>En chasse</dt><dd id="s-chasse">0</dd></div>
+        <div><dt>Images / seconde</dt><dd id="s-fps">0</dd></div>
+      </dl>
+    </details>
+    <footer class="pied">Steering behaviors de Craig Reynolds · p5.js · projet 1 sur 2</footer>
+  </aside>
+
+  <!-- Aide : raccourcis clavier -->
+  <div id="aide" class="voile" hidden>
+    <div class="carte verre">
+      <h2>Raccourcis</h2>
+      <dl class="raccourcis">
+        <div><dt><kbd>Espace</kbd></dt><dd>Pause / lecture</dd></div>
+        <div><dt><kbd>N</kbd></dt><dd>Phase suivante</dd></div>
+        <div><dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Aller au crépuscule, à la nuit, à l’aube</dd></div>
+        <div><dt><kbd>H</kbd></dt><dd>Appeler le hibou</dd></div>
+        <div><dt><kbd>V</kbd></dt><dd>Vecteurs de forces</dd></div>
+        <div><dt><kbd>R</kbd></dt><dd>Rayons d’évitement</dd></div>
+        <div><dt><kbd>L</kbd></dt><dd>Allumer la grotte</dd></div>
+        <div><dt><kbd>G</kbd></dt><dd>Nouvelle grotte</dd></div>
+        <div><dt><kbd>Tab</kbd></dt><dd>Masquer / afficher le panneau</dd></div>
+        <div><dt><kbd>Échap</kbd></dt><dd>Désélectionner / fermer</dd></div>
+      </dl>
+      <button id="aide-fermer" class="texte">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Écran d'accueil -->
+  <div id="intro" class="voile">
+    <div class="intro-contenu">
+      <svg class="intro-sonar" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="6" fill="currentColor"/>
+        <circle class="onde o1" cx="100" cy="100" r="30" fill="none" stroke="currentColor"/>
+        <circle class="onde o2" cx="100" cy="100" r="30" fill="none" stroke="currentColor"/>
+        <circle class="onde o3" cx="100" cy="100" r="30" fill="none" stroke="currentColor"/>
+      </svg>
+      <h1>ÉCHO</h1>
+      <p class="accroche">Une nuit de chauves-souris dans une grotte noire.<br>On ne voit que ce que leur sonar révèle.</p>
+      <ul class="intro-liste">
+        <li><b>Crépuscule</b> — la colonie sort en nuée <span>boids · seek</span></li>
+        <li><b>Nuit</b> — chasse, fuite, hibou <span>wander · pursue · evade · flee · obstacle avoidance</span></li>
+        <li><b>Aube</b> — retour au gîte <span>arrive</span></li>
+      </ul>
+      <button id="intro-entrer" class="grand">Entrer dans la grotte</button>
+      <p class="intro-pied">Astuce : cliquez une chauve-souris pour voir ses forces.</p>
+    </div>
+  </div>
+
   <script src="lib/p5.min.js"></script>
   <script src="src/rng.js"></script>
   <script src="src/config.js"></script>
+  <script src="src/stats.js"></script>
   <script src="src/vehicle.js"></script>
   <script src="src/cave.js"></script>
   <script src="src/sonar.js"></script>
@@ -22,6 +170,7 @@
   <script src="src/chef.js"></script>
   <script src="src/cycle.js"></script>
   <script src="src/world.js"></script>
+  <script src="src/ui.js"></script>
   <script src="src/sketch.js"></script>
 </body>
 </html>
