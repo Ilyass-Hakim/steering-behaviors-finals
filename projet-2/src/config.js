@@ -32,9 +32,9 @@ const CONFIG = {
 
   // Mission 4 — evolutionary steering avec batterie
   evo: {
-    population: 36, populationMax: 90, batterieMax: 100, vitesseMax: 3.2, forceMax: 0.2,
-    mutation: 0.1, coutParPas: 0.012, coutVitesse: 0.02, gainChargeur: 0.5, rayonChargeur: 34,
-    colis: 60, gainColis: 28,
+    population: 36, populationMax: 70, batterieMax: 100, vitesseMax: 3.2, forceMax: 0.2,
+    mutation: 0.12, coutParPas: 0.035, coutVitesse: 0.05, gainChargeur: 0.45, rayonChargeur: 34,
+    colis: 14, gainColis: 30,
     reproduction: 0.0007,
   },
 
