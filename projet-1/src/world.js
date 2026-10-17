@@ -11,6 +11,9 @@ class Monde {
     this.chef = null;         // chef de colonie, présent seulement au crépuscule
     this.actifs = {};         // comportements désactivés : { wander: false, ... }
     this.chauvesSouris = [];
+    this.papillons = [];
+    this.stats = { captures: 0, echappes: 0, alertes: 0 };
+    this.journal = [];        // derniers événements : { t, texte, type }
     this.temps = 0;           // secondes simulées
     this.pasCourant = 0;
     Bat.reinitialiserCompteur();
@@ -25,7 +28,74 @@ class Monde {
       }
       this.chauvesSouris.push(b);
     }
+    Moth.reinitialiserCompteur();
+    this.peuplerPapillons(CONFIG.papillons.nombre);
     this.surPhase('crepuscule');
+  }
+
+  // ---------- Papillons ----------
+
+  peuplerPapillons(n) {
+    const g = this.grotte;
+    this.papillons = [];
+    for (let i = 0; i < n; i++) {
+      if (i % 3 === 0) {
+        this.papillons.push(Moth.pose(g, random(900, g.w - 120)));
+      } else {
+        const m = new Moth(0, 0);
+        this.refaireEntrer(m);
+        m.pos.x = random(700, g.w - 80);          // déjà dans la grotte au départ
+        m.pos.y = g.milieuY(m.pos.x) + random(-120, 120);
+        this.papillons.push(m);
+      }
+    }
+  }
+
+  /** (Ré)introduit un papillon par l'entrée de la grotte */
+  refaireEntrer(m) {
+    const g = this.grotte;
+    m.etat = 'vol';
+    m.pos.set(g.w - 40, g.entree.y + random(-g.entree.hauteur / 3, g.entree.hauteur / 3));
+    m.vel.set(-1.4, random(-0.4, 0.4));
+    m.echo = 0;
+  }
+
+  /** Le papillon révélé par un écho le plus proche de `bat`, ou null */
+  proieDe(bat) {
+    let meilleur = null;
+    let dmin = 270 * 270;
+    for (const m of this.papillons) {
+      if (m.etat === 'mange' || m.echo < 0.12) continue;
+      const dx = m.pos.x - bat.pos.x;
+      const dy = m.pos.y - bat.pos.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= dmin) continue;
+      // pas plus de trois chasseuses sur le même papillon
+      let poursuivants = 0;
+      for (const b of this.chauvesSouris) if (b.cible === m) poursuivants++;
+      if (poursuivants >= 3) continue;
+      dmin = d2;
+      meilleur = m;
+    }
+    return meilleur;
+  }
+
+  capturer(bat, papillon) {
+    papillon.etreMange();
+    bat.captures++;
+    bat.energie = Math.min(1, bat.energie + 0.06);
+    bat.etat = 'errance';
+    bat.cible = null;
+    bat.prediction = null;
+    bat.satiete = 360;
+    this.stats.captures++;
+    this.noter(`Chauve-souris n°${bat.id} a capturé un papillon`, 'capture');
+  }
+
+  /** Ajoute une ligne au journal de la nuit (les 40 dernières sont gardées) */
+  noter(texte, type = 'info') {
+    this.journal.push({ t: this.temps, texte, type });
+    if (this.journal.length > 40) this.journal.shift();
   }
 
   /** Les chauves-souris en vol (hors repos) à moins de `distance` de `bat`, sans `bat` */
@@ -78,9 +148,11 @@ class Monde {
   /** Avance la simulation d'un pas de 1/60 s */
   pas() {
     if (this.chef) { this.chef.penser(this); this.chef.update(); }
+    for (const m of this.papillons) m.penser(this);
     for (const b of this.chauvesSouris) b.penser(this);
+    for (const m of this.papillons) m.update();
     for (const b of this.chauvesSouris) b.update();
-    this.sonar.pas([]);
+    this.sonar.pas(this.papillons.filter((m) => m.etat !== 'mange'));
     const nouvelle = this.cycle.avancer(CONFIG.pasTemps);
     if (nouvelle) this.surPhase(nouvelle);
     this.temps += CONFIG.pasTemps;
@@ -92,6 +164,8 @@ class Monde {
     if (options.lumiere) this.grotte.dessinerGeometrie(ctx, 0.35);
     this.sonar.dessiner(ctx, { jour: 0, ondes: options.ondes !== false });
     if (this.chef) this.chef.dessiner(ctx, options.chemin);
+    for (const m of this.papillons) m.dessiner(ctx);
+    for (const b of this.chauvesSouris) b.dessinerChasse(ctx);
     if (options.rayons) for (const b of this.chauvesSouris) b.dessinerRayons(ctx);
     for (const b of this.chauvesSouris) b.dessiner(ctx);
   }

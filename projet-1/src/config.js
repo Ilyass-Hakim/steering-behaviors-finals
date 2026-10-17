@@ -15,11 +15,19 @@ const CONFIG = {
     energieDepart: 0.8,
   },
 
+  papillons: {
+    nombre: 10,
+    vitesseMax: 2.1,
+    forceMax: 0.1,
+  },
+
   // Poids de chaque force dans la somme des comportements, selon l'état de la chauve-souris
   poids: {
     commun: { avoid: 2.0, contention: 0.8 },
     sortie: { separation: 1.8, alignment: 1.0, cohesion: 0.8, seek: 1.3 },
     errance: { wander: 1.0, separation: 1.1, alignment: 0.12, cohesion: 0.04 },
+    chasse: { pursue: 1.7, seek: 1.7, separation: 0.9 },
+    papillon: { wander: 1.0, avoid: 2.0, contention: 0.8 },
   },
 
   // Durée de chaque phase du cycle de la nuit (secondes simulées)

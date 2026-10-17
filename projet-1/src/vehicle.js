@@ -17,6 +17,7 @@ class Vehicle {
     this.r = options.r ?? 6;
     this.angleErrance = random(-Math.PI, Math.PI);   // état de wander : persiste d'un pas à l'autre
     this.debugErrance = null;                         // cercle d'errance, pour le dessin
+    this.prediction = null;                           // point visé par pursue/evade (dessin)
     this.rayons = [];                                 // derniers rayons de sonar (dessin, inspecteur)
     this.biaisVirage = random() < 0.5 ? -1 : 1;       // côté préféré quand deux issues se valent
   }
@@ -84,6 +85,23 @@ class Vehicle {
     const desire = createVector(cible.x - this.pos.x, cible.y - this.pos.y);
     if (desire.magSq() < 1e-9) return createVector(0, 0);
     return this.steerVers(desire.setMag(vitesse));
+  }
+
+  /**
+   * PURSUE : poursuit une cible mobile en visant l'endroit où elle SERA.
+   * Le temps de rattrapage est estimé par distance / vitesse ; la cible est extrapolée de
+   * ce temps (plafonné par `tMax` pour ne pas viser trop loin). Contre une cible immobile,
+   * c'est exactement un seek.
+   * @param {{pos, vel}} cible
+   * @returns {p5.Vector} la force ; le point visé est mémorisé dans this.prediction
+   */
+  pursue(cible, { tMax = 45 } = {}) {
+    const dx = cible.pos.x - this.pos.x;
+    const dy = cible.pos.y - this.pos.y;
+    const t = Math.min(tMax, Math.hypot(dx, dy) / Math.max(this.maxSpeed, 0.1));
+    const futur = { x: cible.pos.x + cible.vel.x * t, y: cible.pos.y + cible.vel.y * t };
+    this.prediction = futur;
+    return this.seek(futur);
   }
 
   /**

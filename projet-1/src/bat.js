@@ -31,6 +31,11 @@ class Bat extends Vehicle {
     this.energie = CONFIG.chauveSouris.energieDepart;
     this.phaseAiles = random(Math.PI * 2);
     this.eclat = 0;           // éclat lumineux après un cri de sonar (0..1)
+    this.cible = null;        // papillon poursuivi
+    this.tempsChasse = 0;
+    this.satiete = 0;         // pas pendant lesquels elle ne chasse plus (vient de manger)
+    this.captures = 0;
+    this.vitesseBase = CONFIG.chauveSouris.vitesseMax;
     this.delaiDepart = 0;     // pas avant de quitter le gîte (départ échelonné)
     this.decalage = { x: 0, y: 0 };   // place individuelle dans la nuée
     this.minuteurCri = random(0, 90);   // pas restants avant le prochain cri de sonar
@@ -58,6 +63,8 @@ class Bat extends Vehicle {
       return;
     }
     this.crier(monde);
+    this.majChasse(monde);
+    this.maxSpeed = this.vitesseBase * (this.etat === 'chasse' ? 1.1 : 1);
     const poids = { ...CONFIG.poids.commun, ...(CONFIG.poids[this.etat] || {}) };
     const ajouter = (nom, force) => {
       if (monde.actifs[nom] === false || !poids[nom]) return;
@@ -75,9 +82,48 @@ class Bat extends Vehicle {
       ajouter('seek', this.seek({ x: monde.chef.pos.x + this.decalage.x, y: monde.chef.pos.y + this.decalage.y }));
     }
     if (this.etat === 'errance') ajouter('wander', this.wander());
+    if (this.etat === 'chasse' && this.cible) {
+      const p = this.cible;
+      const b = this.boids(voisins);
+      ajouter('separation', b.separation);
+      // proie posée ou presque immobile : seek ; proie en vol : pursue, qui vise où elle sera
+      if (p.vel.mag() < 0.3) ajouter('seek', this.seek(p.pos));
+      else ajouter('pursue', this.pursue(p));
+    }
     ajouter('avoid', this.eviter(monde.grotte));
     ajouter('contention', this.contenir(monde.grotte));
     for (const f of Object.values(this.forces)) this.applyForce(f);
+  }
+
+  /**
+   * Machine à états de la chasse : errance → chasse quand un papillon est révélé par l'écho,
+   * chasse → errance quand elle l'a mangé, l'a perdu ou s'est lassée.
+   */
+  majChasse(monde) {
+    if (this.etat === 'errance') {
+      if (this.satiete > 0) { this.satiete--; return; }
+      const proie = monde.proieDe(this);
+      if (proie) {
+        this.etat = 'chasse';
+        this.cible = proie;
+        this.tempsChasse = 0;
+        monde.noter(`Chauve-souris n°${this.id} chasse un papillon`, 'chasse');
+      }
+    } else if (this.etat === 'chasse') {
+      const p = this.cible;
+      this.tempsChasse++;
+      this.minuteurCri = Math.min(this.minuteurCri, 16);       // « buzz » de capture : cris rapprochés
+      const d = p ? Math.hypot(p.pos.x - this.pos.x, p.pos.y - this.pos.y) : Infinity;
+      if (p && p.etat !== 'mange' && d < this.r + p.r + 3) {
+        monde.capturer(this, p);
+      } else if (!p || p.etat === 'mange' || d > 330 || this.tempsChasse > 420) {
+        if (p && p.etat === 'fuite') monde.stats.echappes++;
+        this.etat = 'errance';
+        this.cible = null;
+        this.prediction = null;
+        this.satiete = 120;
+      }
+    }
   }
 
   /** Quitte le gîte : la place est libérée, la chauve-souris se laisse tomber puis bat des ailes */
@@ -122,6 +168,27 @@ class Bat extends Vehicle {
         ctx.fill();
       }
     }
+    ctx.restore();
+  }
+
+  /** Dessine le point visé par pursue et la ligne de poursuite */
+  dessinerChasse(ctx) {
+    if (this.etat !== 'chasse' || !this.cible || !this.prediction) return;
+    const q = this.prediction;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(244,114,182,0.55)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(this.pos.x, this.pos.y);
+    ctx.lineTo(q.x, q.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(q.x, q.y, 5, 0, Math.PI * 2);
+    ctx.moveTo(q.x - 8, q.y); ctx.lineTo(q.x + 8, q.y);
+    ctx.moveTo(q.x, q.y - 8); ctx.lineTo(q.x, q.y + 8);
+    ctx.stroke();
     ctx.restore();
   }
 
