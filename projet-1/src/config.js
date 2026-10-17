@@ -11,7 +11,7 @@ const CONFIG = {
     nombre: 36,
     vitesseMax: 3.3,         // px par pas
     forceMax: 0.14,
-    rayon: 7,                // demi-envergure de dessin ~ 2 × rayon
+    rayon: 8,                // demi-envergure de dessin ~ 2 × rayon
     energieDepart: 0.8,
   },
 

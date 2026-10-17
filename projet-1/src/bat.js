@@ -31,6 +31,7 @@ class Bat extends Vehicle {
     this.energie = CONFIG.chauveSouris.energieDepart;
     this.phaseAiles = random(Math.PI * 2);
     this.eclat = 0;           // éclat lumineux après un cri de sonar (0..1)
+    this.minuteurCri = random(0, 90);   // pas restants avant le prochain cri de sonar
     this.forces = {};         // dernière force de chaque comportement (inspecteur, vecteurs)
   }
 
@@ -50,12 +51,21 @@ class Bat extends Vehicle {
   penser(monde) {
     this.forces = {};
     if (this.etat === 'repos') return;
+    this.crier(monde);
     const poids = CONFIG.poids;
     if (this.etat === 'errance') {
       this.forces.wander = this.wander().mult(poids.wander);
     }
     this.forces.contention = this.contenir(monde.grotte).mult(poids.contention);
     for (const f of Object.values(this.forces)) this.applyForce(f);
+  }
+
+  /** Émet un cri de sonar à intervalles irréguliers ; le monde fait grandir l'onde */
+  crier(monde) {
+    if (--this.minuteurCri > 0) return;
+    this.minuteurCri = random(70, 115);
+    this.eclat = 1;
+    monde.sonar.ping(this.pos.x, this.pos.y, 1);
   }
 
   /** Un pas physique, puis le battement d'ailes (plus vite quand elle va vite) */
