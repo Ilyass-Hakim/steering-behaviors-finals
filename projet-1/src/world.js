@@ -47,6 +47,7 @@ class Monde {
   dessiner(ctx, options = {}) {
     if (options.lumiere) this.grotte.dessinerGeometrie(ctx, 0.35);
     this.sonar.dessiner(ctx, { jour: 0, ondes: options.ondes !== false });
+    if (options.rayons) for (const b of this.chauvesSouris) b.dessinerRayons(ctx);
     for (const b of this.chauvesSouris) b.dessiner(ctx);
   }
 }

@@ -56,6 +56,7 @@ class Bat extends Vehicle {
     if (this.etat === 'errance') {
       this.forces.wander = this.wander().mult(poids.wander);
     }
+    this.forces.avoid = this.eviter(monde.grotte).mult(poids.avoid);
     this.forces.contention = this.contenir(monde.grotte).mult(poids.contention);
     for (const f of Object.values(this.forces)) this.applyForce(f);
   }
@@ -73,6 +74,28 @@ class Bat extends Vehicle {
     super.update();
     this.phaseAiles += 0.22 + this.vel.mag() * 0.05;
     this.eclat *= 0.93;
+  }
+
+  /** Rayons du sonar d'évitement : un trait vers chaque obstacle touché */
+  dessinerRayons(ctx, alpha = 0.35) {
+    if (!this.rayons.length) return;
+    ctx.save();
+    ctx.lineWidth = 0.9;
+    for (const r of this.rayons) {
+      const a = alpha * (r.touche ? 1 : 0.45);
+      ctx.strokeStyle = r.touche ? `rgba(251,113,133,${a})` : `rgba(125,211,252,${a * 0.6})`;
+      ctx.beginPath();
+      ctx.moveTo(this.pos.x, this.pos.y);
+      ctx.lineTo(r.hx, r.hy);
+      ctx.stroke();
+      if (r.touche) {
+        ctx.fillStyle = `rgba(251,113,133,${Math.min(1, a * 2)})`;
+        ctx.beginPath();
+        ctx.arc(r.hx, r.hy, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
   }
 
   /** Dessin d'une chauve-souris : silhouette sombre, contour de la couleur de son état */

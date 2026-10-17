@@ -17,6 +17,8 @@ class Vehicle {
     this.r = options.r ?? 6;
     this.angleErrance = random(-Math.PI, Math.PI);   // état de wander : persiste d'un pas à l'autre
     this.debugErrance = null;                         // cercle d'errance, pour le dessin
+    this.rayons = [];                                 // derniers rayons de sonar (dessin, inspecteur)
+    this.biaisVirage = random() < 0.5 ? -1 : 1;       // côté préféré quand deux issues se valent
   }
 
   /** Accumule une force (masse = 1 : force = accélération) */
@@ -73,6 +75,45 @@ class Vehicle {
       tx: this.pos.x + centre.x + decalage.x, ty: this.pos.y + centre.y + decalage.y,
     };
     return this.steerVers(desire);
+  }
+
+  /**
+   * OBSTACLE AVOIDANCE par rayons de sonar.
+   * Sept rayons partent dans un éventail devant l'entité. Chacun mesure la distance libre
+   * jusqu'à la roche. On vire vers le rayon le plus dégagé, d'autant plus fort qu'un
+   * obstacle est proche du cap, et on ralentit quand l'espace se referme.
+   * La force peut dépasser maxForce jusqu'à 3 × en cas d'urgence (freinage d'évitement).
+   * @returns {p5.Vector} la force d'évitement (nulle si la voie est libre)
+   */
+  eviter(grotte, {
+    portee = 130, marge = 10,
+    angles = [-75, -50, -25, 0, 25, 50, 75],
+    poidsAngle = [0.45, 0.65, 0.85, 1, 0.85, 0.65, 0.45],
+  } = {}) {
+    const cap = this.cap;
+    const candidats = grotte.cerclesProches(this.pos.x, this.pos.y, portee + marge + 10);
+    const rayons = [];
+    let urgence = 0;
+    let meilleur = -1;
+    let libreMeilleur = -1;
+    for (let i = 0; i < angles.length; i++) {
+      const ang = cap + (angles[i] * Math.PI) / 180;
+      const dx = Math.cos(ang);
+      const dy = Math.sin(ang);
+      const d = Math.min(portee, grotte.rayon(this.pos.x, this.pos.y, dx, dy, portee, marge, candidats));
+      const libre = d / portee;
+      rayons.push({ ang, d, libre, touche: d < portee, hx: this.pos.x + dx * d, hy: this.pos.y + dy * d });
+      urgence = Math.max(urgence, poidsAngle[i] * (1 - libre));
+      // le rayon le plus dégagé gagne ; à égalité, le côté préféré de l'entité
+      const score = libre + 0.04 * Math.sign(angles[i]) * this.biaisVirage;
+      if (score > libreMeilleur) { libreMeilleur = score; meilleur = i; }
+    }
+    this.rayons = rayons;
+    if (urgence < 0.02) return createVector(0, 0);
+    const choisi = rayons[meilleur];
+    const vitesse = this.maxSpeed * (0.4 + 0.6 * (1 - urgence));
+    const desire = createVector(Math.cos(choisi.ang), Math.sin(choisi.ang)).setMag(vitesse);
+    return this.steerVers(desire).mult(1 + 2 * urgence);
   }
 
   /**

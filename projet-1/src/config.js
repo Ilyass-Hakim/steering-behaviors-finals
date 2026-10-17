@@ -18,7 +18,8 @@ const CONFIG = {
   // Poids de chaque force dans la somme des comportements d'une chauve-souris
   poids: {
     wander: 1.0,
-    contention: 1.6,
+    avoid: 2.0,
+    contention: 0.8,
   },
 
   // Couleur de chaque force (légende, vecteurs, jauges de l'inspecteur)

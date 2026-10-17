@@ -73,6 +73,31 @@ class Sonar {
     this.xs = Float32Array.from(xs);
     this.ys = Float32Array.from(ys);
     this.types = Uint8Array.from(types);
+    this._indexer();
+  }
+
+  /** Grille de cases de 64 px : une onde ne visite que les cases proches de son front */
+  _indexer() {
+    const T = 64;
+    this.taille = T;
+    this.cols = Math.ceil((this.grotte.w + 20) / T) + 1;
+    this.lignes = Math.ceil((this.grotte.h + 20) / T) + 1;
+    const compte = new Int32Array(this.cols * this.lignes + 1);
+    const cases = new Int32Array(this.n);
+    for (let i = 0; i < this.n; i++) {
+      const c = Math.max(0, Math.min(this.cols - 1, Math.floor((this.xs[i] + 10) / T)));
+      const l = Math.max(0, Math.min(this.lignes - 1, Math.floor((this.ys[i] + 10) / T)));
+      cases[i] = l * this.cols + c;
+      compte[cases[i] + 1]++;
+    }
+    for (let k = 0; k < this.cols * this.lignes; k++) compte[k + 1] += compte[k];
+    this.debutCase = compte;                       // debutCase[k] .. debutCase[k+1] dans `ordre`
+    this.ordre = new Int32Array(this.n);
+    const rempli = new Int32Array(this.cols * this.lignes);
+    for (let i = 0; i < this.n; i++) {
+      const k = cases[i];
+      this.ordre[compte[k] + rempli[k]++] = i;
+    }
   }
 
   // ---------- Émission et propagation ----------
@@ -101,12 +126,27 @@ class Sonar {
       if (intensite <= 0.02) continue;
       const a2 = r0 * r0;
       const b2 = r1 * r1;
-      for (let i = 0; i < this.n; i++) {
-        const dx = xs[i] - o.x;
-        if (dx > r1 || dx < -r1) continue;
-        const dy = ys[i] - o.y;
-        const d2 = dx * dx + dy * dy;
-        if (d2 >= a2 && d2 < b2 && intensite > L[i]) L[i] = intensite;
+      const T = this.taille;
+      const demi = T * 0.7072 + SONAR.vitesseSon;      // demi-diagonale d'une case + épaisseur du front
+      const c0 = Math.max(0, Math.floor((o.x - r1 + 10) / T));
+      const c1 = Math.min(this.cols - 1, Math.floor((o.x + r1 + 10) / T));
+      const l0 = Math.max(0, Math.floor((o.y - r1 + 10) / T));
+      const l1 = Math.min(this.lignes - 1, Math.floor((o.y + r1 + 10) / T));
+      for (let l = l0; l <= l1; l++) {
+        for (let c = c0; c <= c1; c++) {
+          const cx = c * T + T / 2 - 10;
+          const cy = l * T + T / 2 - 10;
+          const dc = Math.hypot(cx - o.x, cy - o.y);
+          if (dc < r0 - demi || dc > r1 + demi) continue;
+          const k = l * this.cols + c;
+          for (let j = this.debutCase[k]; j < this.debutCase[k + 1]; j++) {
+            const i = this.ordre[j];
+            const dx = xs[i] - o.x;
+            const dy = ys[i] - o.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 >= a2 && d2 < b2 && intensite > L[i]) L[i] = intensite;
+          }
+        }
       }
       for (const e of entites) {
         const dx = e.pos.x - o.x;

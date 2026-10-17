@@ -7,7 +7,7 @@ let monde;
 let echelle = 1;
 let decalageX = 0;
 let decalageY = 0;
-const reglages = { lumiere: false, ondes: true, vitesse: 1, pause: false };
+const reglages = { lumiere: false, ondes: true, rayons: false, vitesse: 1, pause: false };
 
 function setup() {
   const scene = document.getElementById('scene');
