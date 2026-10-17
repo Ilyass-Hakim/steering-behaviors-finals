@@ -59,7 +59,22 @@ const CONFIG = {
     evade: '#2dd4bf',
     flee: '#f87171',
     arrive: '#facc15',
+    contention: '#94a3b8',
   },
+
+  // Les comportements présentés dans l'interface : où les voir dans la simulation
+  comportements: [
+    { id: 'wander', nom: 'Errance', terme: 'wander', ou: 'Nuit', texte: 'Les chauves-souris explorent la grotte noire en courbes douces : la direction est continue.' },
+    { id: 'avoid', nom: 'Évitement d’obstacles', terme: 'obstacle avoidance', ou: 'Partout', texte: 'Sept rayons de sonar devant chaque bête : on vire vers le rayon le plus dégagé (traits roses).' },
+    { id: 'separation', nom: 'Séparation', terme: 'separation', ou: 'Colonie', texte: 'S’écarter des voisines trop proches pour ne pas se heurter.' },
+    { id: 'alignment', nom: 'Alignement', terme: 'alignment', ou: 'Crépuscule', texte: 'Prendre la direction moyenne du groupe : la nuée coule comme une rivière.' },
+    { id: 'cohesion', nom: 'Cohésion', terme: 'cohesion', ou: 'Crépuscule', texte: 'Rester groupée autour du centre des voisines : la colonie ne s’éparpille pas.' },
+    { id: 'seek', nom: 'Chercher', terme: 'seek', ou: 'Crépuscule, aube', texte: 'Suivre le chef de colonie, rejoindre le point d’approche, cueillir un papillon posé.' },
+    { id: 'pursue', nom: 'Poursuivre', terme: 'pursue', ou: 'Chasse', texte: 'Viser l’endroit où le papillon SERA, pas où il est (viseur rose).' },
+    { id: 'evade', nom: 'S’échapper', terme: 'evade', ou: 'Papillons', texte: 'Le papillon fuit l’endroit où la chasseuse SERA, en zigzag (traits verts).' },
+    { id: 'flee', nom: 'Fuir', terme: 'flee', ou: 'Hibou', texte: 'Devant le hibou, la colonie s’éparpille : fuite à l’opposé du danger.' },
+    { id: 'arrive', nom: 'Arriver', terme: 'arrive', ou: 'Aube', texte: 'Freiner en approchant de sa place, puis se suspendre tête en bas au plafond.' },
+  ],
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { CONFIG };
