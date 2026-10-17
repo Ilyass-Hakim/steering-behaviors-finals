@@ -94,7 +94,8 @@ class Vehicle {
     const info = chemin.viser(this.pos, this.vel, anticipation, avance);
     this.debugChemin = info;
     if (!info) return createVector(0, 0);
-    if (info.distance <= chemin.rayon) return createVector(0, 0);
+    // à l'arrêt il n'y a pas de direction à prédire : on vise directement le chemin
+    if (this.vel.magSq() > 0.25 && info.distance <= chemin.rayon) return createVector(0, 0);
     return this.seek(info.cible);
   }
 }
