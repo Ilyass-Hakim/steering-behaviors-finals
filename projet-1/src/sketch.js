@@ -35,7 +35,8 @@ function draw() {
   if (!reglages.pause) {
     for (let i = 0; i < reglages.vitesse; i++) monde.pas();
   }
-  background(4, 5, 9);
+  const lum = monde.cycle.lumiere;
+  background(4 + 20 * lum, 5 + 12 * lum, 9 + 4 * lum);
   const ctx = drawingContext;
   ctx.save();
   ctx.translate(decalageX, decalageY);

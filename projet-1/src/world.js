@@ -179,6 +179,25 @@ class Monde {
     if (phase === 'crepuscule') {
       this.chef = new Chef(this.cheminColonie());
       for (const b of this.chauvesSouris) if (b.etat === 'repos') b.delaiDepart = Math.floor(random(1, 280));
+    } else if (phase === 'aube') {
+      this.hibou = null;
+      this.noter("L'aube se lève : la colonie regagne le gîte", 'aube');
+      this.grotte.libererPlaces();
+      for (const b of this.chauvesSouris) if (b.etat === 'repos' && b.place) b.place.prise = true;
+      const gite = (this.grotte.zoneRepos.x0 + this.grotte.zoneRepos.x1) / 2;
+      const ordre = this.chauvesSouris.filter((b) => b.etat !== 'repos')
+        .sort((a, b) => Math.abs(a.pos.x - gite) - Math.abs(b.pos.x - gite));
+      for (const b of ordre) {
+        const place = this.grotte.reserverPlace(b.pos.x, b.pos.y);
+        if (!place) continue;
+        b.place = place;
+        b.etat = 'retour';
+        b.cible = null;
+        b.prediction = null;
+        b.delaiRetour = Math.floor(random(0, 360));
+        b.approche = { x: place.x + random(-30, 30), y: this.grotte.plafondY(place.x) + 210 };
+        b.approcheRef = b.approche;
+      }
     } else if (phase === 'nuit') {
       const [a, b] = CONFIG.hibouApparitionNuit;
       this.hibouPrevu = random(a, b);
@@ -208,6 +227,7 @@ class Monde {
     for (const b of this.chauvesSouris) b.penser(this);
     for (const m of this.papillons) m.update();
     for (const b of this.chauvesSouris) b.update();
+    this.sonar.eclairer(this.cycle.lumiere * 0.55);
     this.sonar.pas(this.papillons.filter((m) => m.etat !== 'mange').concat(this.hibou ? [this.hibou] : []));
     const nouvelle = this.cycle.avancer(CONFIG.pasTemps);
     if (nouvelle) this.surPhase(nouvelle);
@@ -215,10 +235,30 @@ class Monde {
     this.pasCourant++;
   }
 
+  /** Lueur à l'entrée de la grotte : lune pâle la nuit, soleil chaud à l'aube */
+  dessinerEntree(ctx) {
+    const g = this.grotte;
+    const lum = this.cycle.lumiere;
+    const rayon = 330 + 140 * lum;
+    const grad = ctx.createRadialGradient(g.w, g.entree.y, 0, g.w, g.entree.y, rayon);
+    const chaud = Math.min(1, lum * 1.5);
+    const R = Math.round(120 + 135 * chaud);
+    const G = Math.round(150 + 40 * chaud);
+    const B = Math.round(220 - 90 * chaud);
+    grad.addColorStop(0, `rgba(${R},${G},${B},${0.10 + 0.5 * lum})`);
+    grad.addColorStop(0.45, `rgba(${R},${G},${B},${0.03 + 0.14 * lum})`);
+    grad.addColorStop(1, `rgba(${R},${G},${B},0)`);
+    ctx.save();
+    ctx.fillStyle = grad;
+    ctx.fillRect(g.w - rayon, g.entree.y - rayon, rayon, rayon * 2);
+    ctx.restore();
+  }
+
   /** Dessine le monde (le contexte est déjà mis à l'échelle) */
   dessiner(ctx, options = {}) {
     if (options.lumiere) this.grotte.dessinerGeometrie(ctx, 0.35);
-    this.sonar.dessiner(ctx, { jour: 0, ondes: options.ondes !== false });
+    this.dessinerEntree(ctx);
+    this.sonar.dessiner(ctx, { jour: Math.min(1, this.cycle.lumiere * 1.4), ondes: options.ondes !== false });
     if (this.chef) this.chef.dessiner(ctx, options.chemin);
     if (this.hibou) this.hibou.dessinerZone(ctx, this.temps);
     for (const m of this.papillons) m.dessiner(ctx);

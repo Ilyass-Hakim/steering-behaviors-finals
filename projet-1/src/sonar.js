@@ -176,8 +176,8 @@ class Sonar {
     const chaud = jour;
     const mix = (a, b) => Math.round(a + (b - a) * chaud);
     const teintes = [
-      [mix(95, 255), mix(205, 190), mix(255, 130)],   // parois : cyan → ambre
-      [mix(160, 255), mix(225, 215), mix(255, 170)],  // concrétions : plus claires
+      [mix(95, 255), mix(205, 150), mix(255, 70)],    // parois : cyan → ambre
+      [mix(160, 255), mix(225, 190), mix(255, 120)],  // concrétions : plus claires
     ];
     const NIVEAUX = 7;
     const seaux = [[], []];
