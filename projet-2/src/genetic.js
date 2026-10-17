@@ -21,6 +21,7 @@ class Genetique {
     this.rng = rng;
     this.generation = 0;
     this.historique = [];           // meilleure longueur à chaque génération
+    this.historiqueMoyenne = [];    // longueur moyenne de la population
     this.individus = [];
     for (let i = 0; i < population; i++) this.individus.push(this.melanger());
     this.evaluer();
@@ -52,6 +53,7 @@ class Genetique {
     this.meilleureLongueur = 1 / this.scores[b];
     this.moyenne = this.individus.reduce((a, g) => a + this.longueur(g), 0) / this.taille;
     this.historique.push(this.meilleureLongueur);
+    this.historiqueMoyenne.push(this.moyenne);
   }
 
   choisir() {
