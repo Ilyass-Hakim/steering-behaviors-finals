@@ -213,6 +213,13 @@ class Vehicle {
    */
   contenir(grotte, marge = 70) {
     const p = this.pos;
+    // secours : si l'entité est déjà dans la roche ou hors de la grotte, forte force vers le couloir central
+    if (grotte.estSolide(p.x, p.y)) {
+      const cx = Math.min(grotte.w - 40, Math.max(40, p.x));
+      const rappel = createVector(cx - p.x, grotte.milieuY(cx) - p.y);
+      if (rappel.magSq() < 1e-9) rappel.set(0, 1);
+      return this.steerVers(rappel.setMag(this.maxSpeed)).mult(4);
+    }
     let dx = 0;
     let dy = 0;
     if (p.y < grotte.plafondY(p.x) + marge) dy = this.maxSpeed;
