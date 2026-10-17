@@ -18,6 +18,7 @@ class Cave {
     this.bruitPlafond = new Bruit1D(graine * 3 + 1);
     this.bruitSol = new Bruit1D(graine * 5 + 2);
     this.zoneRepos = { x0: 150, x1: 700 };
+    this._tabulerProfils();
     this.cercles = [];        // { x, y, r, type: 'stalactite' | 'stalagmite', id }
     this.formes = [];         // résumé de chaque concrétion (pour le dessin)
     this.places = [];         // places de repos au plafond
@@ -28,8 +29,34 @@ class Cave {
 
   // ---------- Profil du plafond et du sol ----------
 
+  /** Pré-calcule plafond et sol tous les pixels : les rayons les lisent des milliers de fois */
+  _tabulerProfils() {
+    const n = Math.ceil(this.w) + 3;
+    this._plafond = new Float32Array(n);
+    this._sol = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      this._plafond[i] = this._plafondBrut(i - 1);
+      this._sol[i] = this._solBrut(i - 1);
+    }
+  }
+
+  _lire(tab, x) {
+    const u = Math.min(tab.length - 2.001, Math.max(0, x + 1));
+    const i = Math.floor(u);
+    return tab[i] + (tab[i + 1] - tab[i]) * (u - i);
+  }
+
   /** Altitude du plafond à l'abscisse x (y croît vers le bas) */
   plafondY(x) {
+    return this._lire(this._plafond, x);
+  }
+
+  /** Altitude du sol à l'abscisse x */
+  solY(x) {
+    return this._lire(this._sol, x);
+  }
+
+  _plafondBrut(x) {
     const t = x / 260;
     let y = 70 + 90 * this.bruitPlafond.fbm(t);
     // la zone de repos est aplatie pour que les chauves-souris s'y alignent
@@ -41,8 +68,7 @@ class Cave {
     return y;
   }
 
-  /** Altitude du sol à l'abscisse x */
-  solY(x) {
+  _solBrut(x) {
     return this.h - 70 - 90 * this.bruitSol.fbm(x / 300 + 31);
   }
 
@@ -155,6 +181,64 @@ class Cave {
   }
 
   // ---------- Requêtes géométriques ----------
+
+  /**
+   * Lance un rayon depuis (ox, oy) dans la direction unitaire (dx, dy).
+   * Renvoie la distance au premier obstacle (roche, plafond, sol, mur), ou Infinity
+   * s'il n'y en a pas avant `portee`. 0 si l'origine est déjà dans la roche.
+   * `candidats` : cercles à tester (voir cerclesProches), tous par défaut.
+   * `marge` épaissit les concrétions : c'est la taille du corps de l'entité, pour qu'un
+   * rayon ne passe pas entre deux obstacles trop fins pour être touchés.
+   */
+  rayon(ox, oy, dx, dy, portee, marge = 0, candidats = this.cercles) {
+    let meilleur = Infinity;
+    // concrétions : intersection analytique rayon / cercle
+    for (const c of candidats) {
+      const ex = ox - c.x;
+      const ey = oy - c.y;
+      const rc = c.r + marge;
+      if (ex * ex + ey * ey > (portee + rc) * (portee + rc)) continue;
+      const cc = ex * ex + ey * ey - rc * rc;
+      if (cc < 0) return 0;
+      const b = ex * dx + ey * dy;
+      const disc = b * b - cc;
+      if (disc < 0) continue;
+      const t = -b - Math.sqrt(disc);
+      if (t >= 0 && t < meilleur) meilleur = t;
+    }
+    // parois : on avance par pas de 5 px, puis on affine par dichotomie
+    const limite = Math.min(portee, meilleur);
+    for (let t = 0; t <= limite; t += 5) {
+      if (this._hors(ox + dx * t, oy + dy * t)) {
+        if (t === 0) return 0;
+        let a = t - 5;
+        let b = t;
+        for (let i = 0; i < 4; i++) {
+          const m = (a + b) / 2;
+          if (this._hors(ox + dx * m, oy + dy * m)) b = m; else a = m;
+        }
+        return Math.min(meilleur, b);
+      }
+    }
+    return meilleur <= portee ? meilleur : Infinity;
+  }
+
+  /** Les cercles susceptibles d'être touchés depuis (x, y) : à calculer une fois par entité */
+  cerclesProches(x, y, distance) {
+    const proches = [];
+    for (const c of this.cercles) {
+      const dx = c.x - x;
+      const dy = c.y - y;
+      const lim = distance + c.r;
+      if (dx * dx + dy * dy <= lim * lim) proches.push(c);
+    }
+    return proches;
+  }
+
+  /** Hors de la grotte : au-delà d'une paroi, du plafond ou du sol */
+  _hors(x, y) {
+    return x < 0 || x > this.w || y < this.plafondY(x) || y > this.solY(x);
+  }
 
   /** Vrai si le point (x, y) est dans la roche ou hors de la grotte */
   estSolide(x, y) {
