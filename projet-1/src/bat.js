@@ -261,6 +261,69 @@ class Bat extends Vehicle {
     ctx.restore();
   }
 
+  /** Une flèche par force : sa couleur est celle du comportement (voir la légende) */
+  dessinerVecteurs(ctx, echelle = 85) {
+    if (this.etat === 'repos') return;
+    ctx.save();
+    ctx.lineWidth = 1.6;
+    for (const [nom, f] of Object.entries(this.forces)) {
+      const n = Math.hypot(f.x, f.y);
+      if (n < 0.01) continue;
+      const bx = this.pos.x + f.x * echelle;
+      const by = this.pos.y + f.y * echelle;
+      const col = CONFIG.couleurs[nom] || '#fff';
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(this.pos.x, this.pos.y);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+      const a = Math.atan2(f.y, f.x);
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx - 6 * Math.cos(a - 0.45), by - 6 * Math.sin(a - 0.45));
+      ctx.lineTo(bx - 6 * Math.cos(a + 0.45), by - 6 * Math.sin(a + 0.45));
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /** Cercle d'errance (wander) : le cercle devant la bête et le point cible sur ce cercle */
+  dessinerErrance(ctx) {
+    const d = this.debugErrance;
+    if (!d || this.etat !== 'errance') return;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(125,211,252,0.4)';
+    ctx.fillStyle = 'rgba(125,211,252,0.9)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(d.cx, d.cy, d.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(this.pos.x, this.pos.y);
+    ctx.lineTo(d.tx, d.ty);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(d.tx, d.ty, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /** Anneau de sélection autour de la bête inspectée */
+  dessinerSelection(ctx, temps) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([4, 5]);
+    ctx.lineDashOffset = -temps * 20;
+    ctx.beginPath();
+    ctx.arc(this.pos.x, this.pos.y, 20, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   /** Dessine le point visé par pursue et la ligne de poursuite */
   dessinerChasse(ctx) {
     if (this.etat !== 'chasse' || !this.cible || !this.prediction) return;

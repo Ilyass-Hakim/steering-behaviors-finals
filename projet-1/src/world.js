@@ -254,7 +254,39 @@ class Monde {
     ctx.restore();
   }
 
-  /** Dessine le monde (le contexte est déjà mis à l'échelle) */
+  /** Les entités qui ont des forces (pour compter les comportements en cours) */
+  entites() {
+    const liste = [...this.chauvesSouris, ...this.papillons];
+    if (this.hibou) liste.push(this.hibou);
+    if (this.chef) liste.push(this.chef);
+    return liste;
+  }
+
+  /** Ajoute ou retire des papillons pour atteindre `n` */
+  ajusterPapillons(n) {
+    while (this.papillons.length < n) {
+      const m = new Moth(0, 0);
+      this.refaireEntrer(m);
+      this.papillons.push(m);
+    }
+    this.papillons.length = Math.min(this.papillons.length, n);
+  }
+
+  /** Chauve-souris la plus proche du point (x, y) du monde, à moins de `rayon` px */
+  chauveSourisPres(x, y, rayon = 26) {
+    let meilleure = null;
+    let dmin = rayon * rayon;
+    for (const b of this.chauvesSouris) {
+      const d = (b.pos.x - x) ** 2 + (b.pos.y - y) ** 2;
+      if (d < dmin) { dmin = d; meilleure = b; }
+    }
+    return meilleure;
+  }
+
+  /**
+   * Dessine le monde (le contexte est déjà mis à l'échelle).
+   * options : lumiere, ondes, rayons, vecteurs, viseurs, chemin, errance, selection (une Bat)
+   */
   dessiner(ctx, options = {}) {
     if (options.lumiere) this.grotte.dessinerGeometrie(ctx, 0.35);
     this.dessinerEntree(ctx);
@@ -263,10 +295,19 @@ class Monde {
     if (this.hibou) this.hibou.dessinerZone(ctx, this.temps);
     for (const m of this.papillons) m.dessiner(ctx);
     if (this.hibou) this.hibou.dessiner(ctx);
-    for (const b of this.chauvesSouris) b.dessinerChasse(ctx);
-    for (const m of this.papillons) m.dessinerFuite(ctx);
+    if (options.viseurs !== false) {
+      for (const b of this.chauvesSouris) b.dessinerChasse(ctx);
+      for (const m of this.papillons) m.dessinerFuite(ctx);
+    }
+    const sel = options.selection;
     if (options.rayons) for (const b of this.chauvesSouris) b.dessinerRayons(ctx);
+    else if (sel) sel.dessinerRayons(ctx, 0.7);
+    if (options.errance) for (const b of this.chauvesSouris) b.dessinerErrance(ctx);
+    else if (sel) sel.dessinerErrance(ctx);
     for (const b of this.chauvesSouris) b.dessiner(ctx);
+    if (options.vecteurs) for (const b of this.chauvesSouris) b.dessinerVecteurs(ctx);
+    else if (sel) sel.dessinerVecteurs(ctx);
+    if (sel) sel.dessinerSelection(ctx, this.temps);
   }
 }
 
