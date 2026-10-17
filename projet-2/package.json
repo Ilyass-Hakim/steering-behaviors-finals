@@ -1,0 +1,10 @@
+{
+  "name": "skypost-drones",
+  "version": "1.0.0",
+  "description": "SkyPost — des drones de livraison médicale qui apprennent une ville (algorithme génétique, path following, neuroévolution, evolutionary steering, p5.js)",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "python -m http.server 8080"
+  }
+}
