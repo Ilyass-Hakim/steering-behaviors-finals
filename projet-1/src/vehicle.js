@@ -88,6 +88,20 @@ class Vehicle {
   }
 
   /**
+   * ARRIVE : comme seek, mais la vitesse désirée diminue linéairement dans un rayon autour de
+   * la cible, jusqu'à zéro à l'arrivée : l'entité freine et s'arrête sans dépasser.
+   * @param {{x, y}} cible
+   * @param {number} rayon  distance à partir de laquelle on ralentit
+   */
+  arrive(cible, rayon = 110) {
+    const desire = createVector(cible.x - this.pos.x, cible.y - this.pos.y);
+    const d = desire.mag();
+    if (d < 1e-6) return this.steerVers(createVector(0, 0));
+    const vitesse = d < rayon ? this.maxSpeed * (d / rayon) : this.maxSpeed;
+    return this.steerVers(desire.setMag(vitesse));
+  }
+
+  /**
    * FLEE : fuit un point. C'est l'inverse de seek : vitesse désirée = s'éloigner du point.
    * @param {{x, y}} point  ce qu'on fuit
    */
@@ -173,13 +187,15 @@ class Vehicle {
    * Sept rayons partent dans un éventail devant l'entité. Chacun mesure la distance libre
    * jusqu'à la roche. On vire vers le rayon le plus dégagé, d'autant plus fort qu'un
    * obstacle est proche du cap, et on ralentit quand l'espace se referme.
-   * La force peut dépasser maxForce jusqu'à 3 × en cas d'urgence (freinage d'évitement).
+   * La force est proportionnelle à l'urgence et peut dépasser maxForce jusqu'à 3 × (freinage).
+   * `but` (optionnel) : point que l'entité veut atteindre, pour contourner plutôt que repousser.
    * @returns {p5.Vector} la force d'évitement (nulle si la voie est libre)
    */
   eviter(grotte, {
     portee = 130, marge = 10,
     angles = [-75, -50, -25, 0, 25, 50, 75],
     poidsAngle = [0.45, 0.65, 0.85, 1, 0.85, 0.65, 0.45],
+    but = null,
   } = {}) {
     const cap = this.cap;
     const candidats = grotte.cerclesProches(this.pos.x, this.pos.y, portee + marge + 10);
@@ -187,6 +203,7 @@ class Vehicle {
     let urgence = 0;
     let meilleur = -1;
     let libreMeilleur = -1;
+    let libreMax = 0;
     for (let i = 0; i < angles.length; i++) {
       const ang = cap + (angles[i] * Math.PI) / 180;
       const dx = Math.cos(ang);
@@ -195,16 +212,51 @@ class Vehicle {
       const libre = d / portee;
       rayons.push({ ang, d, libre, touche: d < portee, hx: this.pos.x + dx * d, hy: this.pos.y + dy * d });
       urgence = Math.max(urgence, poidsAngle[i] * (1 - libre));
+      libreMax = Math.max(libreMax, libre);
       // le rayon le plus dégagé gagne ; à égalité, le côté préféré de l'entité
-      const score = libre + 0.04 * Math.sign(angles[i]) * this.biaisVirage;
+      let score = libre + 0.04 * Math.sign(angles[i]) * this.biaisVirage;
+      if (but) {
+        // à dégagement égal, on préfère le rayon qui va vers le but (point {x, y}) : l'évitement
+        // contourne l'obstacle au lieu de repousser sans fin l'entité qui veut le dépasser
+        const gx = but.x - this.pos.x;
+        const gy = but.y - this.pos.y;
+        const gn = Math.hypot(gx, gy) || 1;
+        score += 0.35 * Math.max(0, (dx * gx + dy * gy) / gn);
+      }
       if (score > libreMeilleur) { libreMeilleur = score; meilleur = i; }
     }
     this.rayons = rayons;
+    if (libreMax < 0.08) return this.echapper(grotte, candidats, marge);
     if (urgence < 0.02) return createVector(0, 0);
     const choisi = rayons[meilleur];
     const vitesse = this.maxSpeed * (0.4 + 0.6 * (1 - urgence));
     const desire = createVector(Math.cos(choisi.ang), Math.sin(choisi.ang)).setMag(vitesse);
-    return this.steerVers(desire).mult(1 + 2 * urgence);
+    // la force croît avec l'urgence : un obstacle lointain ne fait qu'infléchir la trajectoire
+    return this.steerVers(desire).mult(Math.min(1, urgence * 10) * (1 + 2 * urgence));
+  }
+
+  /**
+   * Dernier recours de l'évitement : l'entité est collée à la roche et aucun rayon de l'éventail
+   * n'est libre (elle a la roche presque sur tout l'avant). On la repousse directement, loin de
+   * chaque pointe ou paroi qui la serre, avec une forte force.
+   */
+  echapper(grotte, candidats, marge) {
+    const p = this.pos;
+    const poussee = createVector(0, 0);
+    for (const c of candidats) {
+      const dx = p.x - c.x;
+      const dy = p.y - c.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const lim = c.r + marge + 8;
+      if (d < lim) poussee.add(createVector(dx / d, dy / d).mult(lim - d));
+    }
+    const mur = marge * 0.7 + 8;
+    if (p.y < grotte.plafondY(p.x) + mur) poussee.y += mur;
+    if (p.y > grotte.solY(p.x) - mur) poussee.y -= mur;
+    if (p.x < mur) poussee.x += mur;
+    if (p.x > grotte.w - mur) poussee.x -= mur;
+    if (poussee.magSq() < 1e-9) return createVector(0, 0);
+    return this.steerVers(poussee.setMag(this.maxSpeed)).mult(3);
   }
 
   /**

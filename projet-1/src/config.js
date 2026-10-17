@@ -38,12 +38,13 @@ const CONFIG = {
     errance: { wander: 1.0, separation: 1.1, alignment: 0.12, cohesion: 0.04 },
     chasse: { pursue: 1.7, seek: 1.7, separation: 0.9 },
     fuite: { flee: 2.8, separation: 0.7, alignment: 0.8 },
+    retour: { arrive: 2.4, seek: 1.4, wander: 0.8, separation: 0.5 },
     papillon: { wander: 1.0, avoid: 2.0, contention: 0.8 },
     papillonFuite: { evade: 2.2, wander: 0.15, avoid: 2.2, contention: 0.9 },
   },
 
   // Durée de chaque phase du cycle de la nuit (secondes simulées)
-  cycle: { crepuscule: 16, nuit: 60 },
+  cycle: { crepuscule: 16, nuit: 60, aube: 22, repos: 7 },
   hibouApparitionNuit: [18, 34],     // le hibou entre entre ces deux dates (s) de la nuit
 
   // Couleur de chaque force (légende, vecteurs, jauges de l'inspecteur)

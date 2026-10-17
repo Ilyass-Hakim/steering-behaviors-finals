@@ -212,14 +212,15 @@ class Cave {
     }
     // parois : on avance par pas de 5 px, puis on affine par dichotomie
     const limite = Math.min(portee, meilleur);
+    const mur = marge * 0.7;          // les parois aussi sont épaissies, un peu moins que les pointes
     for (let t = 0; t <= limite; t += 5) {
-      if (this._hors(ox + dx * t, oy + dy * t)) {
+      if (this._hors(ox + dx * t, oy + dy * t, mur)) {
         if (t === 0) return 0;
         let a = t - 5;
         let b = t;
         for (let i = 0; i < 4; i++) {
           const m = (a + b) / 2;
-          if (this._hors(ox + dx * m, oy + dy * m)) b = m; else a = m;
+          if (this._hors(ox + dx * m, oy + dy * m, mur)) b = m; else a = m;
         }
         return Math.min(meilleur, b);
       }
@@ -239,9 +240,18 @@ class Cave {
     return proches;
   }
 
+  /** Vrai si le segment a → b ne rencontre ni roche ni paroi (avec la marge du corps) */
+  segmentLibre(a, b, marge = 6) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 1e-6) return true;
+    return this.rayon(a.x, a.y, dx / d, dy / d, d, marge) === Infinity;
+  }
+
   /** Hors de la grotte : au-delà d'une paroi, du plafond ou du sol */
-  _hors(x, y) {
-    return x < 0 || x > this.w || y < this.plafondY(x) || y > this.solY(x);
+  _hors(x, y, marge = 0) {
+    return x < marge || x > this.w - marge || y < this.plafondY(x) + marge || y > this.solY(x) - marge;
   }
 
   /** Vrai si le point (x, y) est dans la roche ou hors de la grotte */
