@@ -63,5 +63,5 @@ export function chargerMonde(fichiers, noms, graine = 7) {
 }
 
 /** Les fichiers de base, dans l'ordre des <script> de index.html */
-export const BASE = ['src/rng.js', 'src/config.js', 'src/vehicle.js', 'src/path.js', 'src/city.js', 'src/genetic.js', 'src/drone.js', 'src/neuro.js', 'src/arene.js', 'src/pilote.js', 'src/ecole.js'];
-export const NOMS_BASE = ['creerRng', 'CONFIG', 'Vehicle', 'Ville', 'Genetique', 'Chemin', 'projectionScalaire', 'Drone', 'Reseau', 'Neuroevolution', 'gaussien', 'Arene', 'Pilote', 'Ecole'];
+export const BASE = ['src/rng.js', 'src/config.js', 'src/vehicle.js', 'src/path.js', 'src/city.js', 'src/genetic.js', 'src/drone.js', 'src/neuro.js', 'src/arene.js', 'src/pilote.js', 'src/ecole.js', 'src/adn.js', 'src/drone-evo.js', 'src/colonie.js'];
+export const NOMS_BASE = ['creerRng', 'CONFIG', 'Vehicle', 'Ville', 'Genetique', 'Chemin', 'projectionScalaire', 'Drone', 'Reseau', 'Neuroevolution', 'gaussien', 'Arene', 'Pilote', 'Ecole', 'ADN', 'GENES', 'DroneEvo', 'Colonie'];
