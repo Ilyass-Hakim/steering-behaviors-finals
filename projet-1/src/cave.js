@@ -199,8 +199,12 @@ class Cave {
       const rc = c.r + marge;
       if (ex * ex + ey * ey > (portee + rc) * (portee + rc)) continue;
       const cc = ex * ex + ey * ey - rc * rc;
-      if (cc < 0) return 0;
       const b = ex * dx + ey * dy;
+      // dans la marge du cercle : un rayon qui s'en éloigne est libre, un rayon qui s'y enfonce est bloqué
+      if (cc < 0) {
+        if (b < 0) return 0;
+        continue;
+      }
       const disc = b * b - cc;
       if (disc < 0) continue;
       const t = -b - Math.sqrt(disc);

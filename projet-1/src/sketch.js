@@ -7,7 +7,7 @@ let monde;
 let echelle = 1;
 let decalageX = 0;
 let decalageY = 0;
-const reglages = { lumiere: false, ondes: true, rayons: false, vitesse: 1, pause: false };
+const reglages = { lumiere: false, ondes: true, rayons: false, chemin: false, vitesse: 1, pause: false };
 
 function setup() {
   const scene = document.getElementById('scene');
@@ -16,7 +16,6 @@ function setup() {
   pixelDensity(Math.min(2, window.devicePixelRatio || 1));
   randomSeed(CONFIG.graine);
   monde = new Monde(CONFIG.graine);
-  monde.liberer('errance');
   ajusterEchelle();
 }
 

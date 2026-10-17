@@ -31,6 +31,8 @@ class Bat extends Vehicle {
     this.energie = CONFIG.chauveSouris.energieDepart;
     this.phaseAiles = random(Math.PI * 2);
     this.eclat = 0;           // éclat lumineux après un cri de sonar (0..1)
+    this.delaiDepart = 0;     // pas avant de quitter le gîte (départ échelonné)
+    this.decalage = { x: 0, y: 0 };   // place individuelle dans la nuée
     this.minuteurCri = random(0, 90);   // pas restants avant le prochain cri de sonar
     this.forces = {};         // dernière force de chaque comportement (inspecteur, vecteurs)
   }
@@ -45,20 +47,45 @@ class Bat extends Vehicle {
   }
 
   /**
-   * Calcule les forces de chaque comportement actif selon l'état, les pondère et les applique.
-   * `monde` donne accès à la grotte (et plus tard aux papillons, au hibou, à la colonie).
+   * Calcule les forces de chaque comportement selon l'état, les pondère (CONFIG.poids) et
+   * les applique. Chaque force est mémorisée dans this.forces pour l'inspecteur.
+   * Un comportement désactivé dans l'interface (monde.actifs[nom] === false) est ignoré.
    */
   penser(monde) {
     this.forces = {};
-    if (this.etat === 'repos') return;
-    this.crier(monde);
-    const poids = CONFIG.poids;
-    if (this.etat === 'errance') {
-      this.forces.wander = this.wander().mult(poids.wander);
+    if (this.etat === 'repos') {
+      if (this.delaiDepart > 0 && --this.delaiDepart === 0) this.decoller(monde, 'sortie');
+      return;
     }
-    this.forces.avoid = this.eviter(monde.grotte).mult(poids.avoid);
-    this.forces.contention = this.contenir(monde.grotte).mult(poids.contention);
+    this.crier(monde);
+    const poids = { ...CONFIG.poids.commun, ...(CONFIG.poids[this.etat] || {}) };
+    const ajouter = (nom, force) => {
+      if (monde.actifs[nom] === false || !poids[nom]) return;
+      this.forces[nom] = force.mult(poids[nom]);
+    };
+
+    const voisins = monde.voisinsDe(this, 120);
+    if (this.etat === 'sortie' || this.etat === 'errance') {
+      const b = this.boids(voisins);
+      ajouter('separation', b.separation);
+      ajouter('alignment', b.alignment);
+      ajouter('cohesion', b.cohesion);
+    }
+    if (this.etat === 'sortie' && monde.chef) {
+      ajouter('seek', this.seek({ x: monde.chef.pos.x + this.decalage.x, y: monde.chef.pos.y + this.decalage.y }));
+    }
+    if (this.etat === 'errance') ajouter('wander', this.wander());
+    ajouter('avoid', this.eviter(monde.grotte));
+    ajouter('contention', this.contenir(monde.grotte));
     for (const f of Object.values(this.forces)) this.applyForce(f);
+  }
+
+  /** Quitte le gîte : la place est libérée, la chauve-souris se laisse tomber puis bat des ailes */
+  decoller(monde, etat) {
+    this.etat = etat;
+    if (this.place) { this.place.prise = false; this.place = null; }
+    this.vel.set(random(-0.5, 0.5), 1.6);
+    this.decalage = { x: random(-110, 110), y: random(-80, 80) };
   }
 
   /** Émet un cri de sonar à intervalles irréguliers ; le monde fait grandir l'onde */

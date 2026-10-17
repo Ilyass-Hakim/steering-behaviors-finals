@@ -78,6 +78,56 @@ class Vehicle {
   }
 
   /**
+   * SEEK : fonce vers un point. Vitesse désirée = direction de la cible × vitesse voulue.
+   */
+  seek(cible, vitesse = this.maxSpeed) {
+    const desire = createVector(cible.x - this.pos.x, cible.y - this.pos.y);
+    if (desire.magSq() < 1e-9) return createVector(0, 0);
+    return this.steerVers(desire.setMag(vitesse));
+  }
+
+  /**
+   * BOIDS de Reynolds, calculés en une seule boucle sur les voisins :
+   *  - séparation : s'écarter de ceux qui sont trop près (plus fort quand ils sont tout près) ;
+   *  - alignement : prendre la vitesse moyenne des voisins ;
+   *  - cohésion   : se rapprocher du centre des voisins.
+   * @param {Array<{pos, vel}>} voisins  les autres entités du groupe (sans soi-même)
+   * @returns {{separation, alignment, cohesion}} trois forces (vecteurs, éventuellement nuls)
+   */
+  boids(voisins, { rSeparation = 34, rAlignement = 80, rCohesion = 110 } = {}) {
+    const sep = createVector(0, 0);
+    const vit = createVector(0, 0);
+    const centre = createVector(0, 0);
+    let nSep = 0;
+    let nAli = 0;
+    let nCoh = 0;
+    for (const o of voisins) {
+      const dx = this.pos.x - o.pos.x;
+      const dy = this.pos.y - o.pos.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= 0) continue;
+      if (d < rSeparation) {
+        sep.x += dx / (d * d);          // d'autant plus fort que le voisin est près
+        sep.y += dy / (d * d);
+        nSep++;
+      }
+      if (d < rAlignement) { vit.add(o.vel); nAli++; }
+      if (d < rCohesion) { centre.x += o.pos.x; centre.y += o.pos.y; nCoh++; }
+    }
+    const zero = () => createVector(0, 0);
+    let separation = zero();
+    let alignment = zero();
+    let cohesion = zero();
+    if (nSep && sep.magSq() > 0) separation = this.steerVers(sep.setMag(this.maxSpeed));
+    if (nAli && vit.magSq() > 0) alignment = this.steerVers(vit.setMag(this.maxSpeed));
+    if (nCoh) {
+      centre.div(nCoh);
+      cohesion = this.seek(centre);
+    }
+    return { separation, alignment, cohesion };
+  }
+
+  /**
    * OBSTACLE AVOIDANCE par rayons de sonar.
    * Sept rayons partent dans un éventail devant l'entité. Chacun mesure la distance libre
    * jusqu'à la roche. On vire vers le rayon le plus dégagé, d'autant plus fort qu'un
