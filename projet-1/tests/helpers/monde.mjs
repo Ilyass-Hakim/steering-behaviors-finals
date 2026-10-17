@@ -2,7 +2,6 @@
 // Il remplace uniquement ce que p5 fournit : createVector, p5.Vector, random, constrain...
 // Les classes du projet, elles, sont le vrai code de src/.
 import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
 
 export class Vecteur {
   constructor(x = 0, y = 0) { this.x = x; this.y = y; }
@@ -44,23 +43,23 @@ function aleatoire(graine) {
  */
 export function chargerMonde(fichiers, noms, graine = 7) {
   const alea = aleatoire(graine);
-  const contexte = vm.createContext({
-    Math, console, Number, Object, Array, Set, Map, JSON, String, Float32Array, Infinity,
+  // Les « globales » de p5 sont passées en paramètres d'une fonction : les accès sont rapides
+  // (un contexte vm ralentit chaque accès à Math ou à une globale d'un facteur 20).
+  const globales = {
     performance: { now: () => 0 },
     window: { devicePixelRatio: 1 },
-    document: undefined,
     createVector: (x, y) => new Vecteur(x, y),
     p5: { Vector: Vecteur },
     constrain: (v, a, b) => Math.min(b, Math.max(a, v)),
     random: (a, b) => (b === undefined ? (a === undefined ? alea() : alea() * a) : a + alea() * (b - a)),
     randomGaussian: () => 0,
-  });
+  };
   const code = fichiers
     .map((f) => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8'))
     .join('\n;\n');
-  const expose = noms.map((n) => `globalThis.${n} = ${n};`).join('\n');
-  vm.runInContext(`${code}\n;${expose}`, contexte);
-  return contexte;
+  const retour = `return { ${noms.join(', ')} };`;
+  const fabrique = new Function(...Object.keys(globales), `${code}\n;${retour}`);
+  return fabrique(...Object.values(globales));
 }
 
 /** Les fichiers de base, dans l'ordre des <script> de index.html */
