@@ -64,7 +64,7 @@ class Bat extends Vehicle {
     }
     this.crier(monde);
     this.majChasse(monde);
-    this.maxSpeed = this.vitesseBase * (this.etat === 'chasse' ? 1.1 : 1);
+    this.maxSpeed = this.vitesseBase * (this.etat === 'chasse' ? CONFIG.chauveSouris.boostChasse : 1);
     const poids = { ...CONFIG.poids.commun, ...(CONFIG.poids[this.etat] || {}) };
     const ajouter = (nom, force) => {
       if (monde.actifs[nom] === false || !poids[nom]) return;
@@ -116,8 +116,11 @@ class Bat extends Vehicle {
       const d = p ? Math.hypot(p.pos.x - this.pos.x, p.pos.y - this.pos.y) : Infinity;
       if (p && p.etat !== 'mange' && d < this.r + p.r + 3) {
         monde.capturer(this, p);
-      } else if (!p || p.etat === 'mange' || d > 330 || this.tempsChasse > 420) {
-        if (p && p.etat === 'fuite') monde.stats.echappes++;
+      } else if (!p || p.etat === 'mange' || d > 400 || this.tempsChasse > 420) {
+        if (p && p.etat === 'fuite') {
+          monde.stats.echappes++;
+          monde.noter(`Un papillon a échappé à la chauve-souris n°${this.id}`, 'echappe');
+        }
         this.etat = 'errance';
         this.cible = null;
         this.prediction = null;

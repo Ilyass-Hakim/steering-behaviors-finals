@@ -60,10 +60,28 @@ class Monde {
     m.echo = 0;
   }
 
+  /**
+   * La chauve-souris dont un papillon entend la menace : une chasseuse à moins de 230 px,
+   * ou une chauve-souris qui vient de crier à moins de 120 px. null si tout est calme.
+   */
+  menaceDe(papillon) {
+    let meilleure = null;
+    let dmin = Infinity;
+    for (const b of this.chauvesSouris) {
+      if (b.etat === 'repos') continue;
+      const dx = b.pos.x - papillon.pos.x;
+      const dy = b.pos.y - papillon.pos.y;
+      const d = Math.hypot(dx, dy);
+      const entendu = (b.etat === 'chasse' && d < 230) || (b.eclat > 0.45 && d < 120);
+      if (entendu && d < dmin) { dmin = d; meilleure = b; }
+    }
+    return meilleure;
+  }
+
   /** Le papillon révélé par un écho le plus proche de `bat`, ou null */
   proieDe(bat) {
     let meilleur = null;
-    let dmin = 270 * 270;
+    let dmin = 230 * 230;
     for (const m of this.papillons) {
       if (m.etat === 'mange' || m.echo < 0.12) continue;
       const dx = m.pos.x - bat.pos.x;
@@ -166,6 +184,7 @@ class Monde {
     if (this.chef) this.chef.dessiner(ctx, options.chemin);
     for (const m of this.papillons) m.dessiner(ctx);
     for (const b of this.chauvesSouris) b.dessinerChasse(ctx);
+    for (const m of this.papillons) m.dessinerFuite(ctx);
     if (options.rayons) for (const b of this.chauvesSouris) b.dessinerRayons(ctx);
     for (const b of this.chauvesSouris) b.dessiner(ctx);
   }

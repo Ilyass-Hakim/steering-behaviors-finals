@@ -55,6 +55,7 @@ function monde(nBats = 1) {
 
 test('chasse : un papillon révélé par l’écho déclenche la poursuite, puis la capture', () => {
   const m = monde(1);
+  m.actifs.evade = false;               // ici le papillon ne fuit pas : on teste la poursuite seule
   const b = m.chauvesSouris[0];
   b.pos.set(900, m.grotte.milieuY(900));
   b.vel.set(1.5, 0);

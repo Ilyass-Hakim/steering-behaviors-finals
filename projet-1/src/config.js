@@ -13,12 +13,15 @@ const CONFIG = {
     forceMax: 0.14,
     rayon: 8,                // demi-envergure de dessin ~ 2 × rayon
     energieDepart: 0.8,
+    boostChasse: 1.3,        // en chasse : vitesse × 1,3
   },
 
   papillons: {
     nombre: 10,
     vitesseMax: 2.1,
     forceMax: 0.1,
+    vitesseFuite: 2.9,       // en fuite : plus rapide et plus agile
+    forceFuite: 0.17,
   },
 
   // Poids de chaque force dans la somme des comportements, selon l'état de la chauve-souris
@@ -28,6 +31,7 @@ const CONFIG = {
     errance: { wander: 1.0, separation: 1.1, alignment: 0.12, cohesion: 0.04 },
     chasse: { pursue: 1.7, seek: 1.7, separation: 0.9 },
     papillon: { wander: 1.0, avoid: 2.0, contention: 0.8 },
+    papillonFuite: { evade: 2.2, wander: 0.15, avoid: 2.2, contention: 0.9 },
   },
 
   // Durée de chaque phase du cycle de la nuit (secondes simulées)

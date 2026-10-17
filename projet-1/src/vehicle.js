@@ -88,6 +88,29 @@ class Vehicle {
   }
 
   /**
+   * FLEE : fuit un point. C'est l'inverse de seek : vitesse désirée = s'éloigner du point.
+   * @param {{x, y}} point  ce qu'on fuit
+   */
+  flee(point, vitesse = this.maxSpeed) {
+    const desire = createVector(this.pos.x - point.x, this.pos.y - point.y);
+    if (desire.magSq() < 1e-9) desire.set(random(-1, 1), random(-1, 1));
+    return this.steerVers(desire.setMag(vitesse));
+  }
+
+  /**
+   * EVADE : fuit un poursuivant en s'éloignant de l'endroit où il SERA (c'est pursue à l'envers).
+   * @param {{pos, vel}} menace
+   */
+  evade(menace, { tMax = 35 } = {}) {
+    const dx = menace.pos.x - this.pos.x;
+    const dy = menace.pos.y - this.pos.y;
+    const t = Math.min(tMax, Math.hypot(dx, dy) / Math.max(this.maxSpeed + Math.hypot(menace.vel.x, menace.vel.y) * 0.5, 0.1));
+    const futur = { x: menace.pos.x + menace.vel.x * t, y: menace.pos.y + menace.vel.y * t };
+    this.prediction = futur;
+    return this.flee(futur);
+  }
+
+  /**
    * PURSUE : poursuit une cible mobile en visant l'endroit où elle SERA.
    * Le temps de rattrapage est estimé par distance / vitesse ; la cible est extrapolée de
    * ce temps (plafonné par `tMax` pour ne pas viser trop loin). Contre une cible immobile,
