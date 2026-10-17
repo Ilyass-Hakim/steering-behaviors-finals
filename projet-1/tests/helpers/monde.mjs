@@ -63,5 +63,5 @@ export function chargerMonde(fichiers, noms, graine = 7) {
 }
 
 /** Les fichiers de base, dans l'ordre des <script> de index.html */
-export const BASE = ['src/rng.js', 'src/config.js', 'src/vehicle.js', 'src/cave.js', 'src/sonar.js', 'src/bat.js', 'src/chef.js', 'src/cycle.js', 'src/world.js'];
-export const NOMS_BASE = ['creerRng', 'Bruit1D', 'CONFIG', 'Vehicle', 'Cave', 'Sonar', 'SONAR', 'Bat', 'Chef', 'NightCycle', 'PHASES', 'Monde'];
+export const BASE = ['src/rng.js', 'src/config.js', 'src/vehicle.js', 'src/cave.js', 'src/sonar.js', 'src/bat.js', 'src/moth.js', 'src/chef.js', 'src/cycle.js', 'src/world.js'];
+export const NOMS_BASE = ['creerRng', 'Bruit1D', 'CONFIG', 'Vehicle', 'Cave', 'Sonar', 'SONAR', 'Bat', 'Moth', 'Chef', 'NightCycle', 'PHASES', 'Monde'];
