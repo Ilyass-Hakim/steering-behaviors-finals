@@ -1,0 +1,10 @@
+{
+  "name": "echo-chauves-souris",
+  "version": "1.0.0",
+  "description": "Écho — une nuit de chauves-souris guidées par sonar (steering behaviors, p5.js)",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "python -m http.server 8080"
+  }
+}
