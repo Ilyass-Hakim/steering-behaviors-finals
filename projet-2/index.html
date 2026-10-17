@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SkyPost : des drones de livraison médicale qui apprennent une ville. Algorithme génétique, path following, neuroévolution et evolutionary steering en p5.js.">
+  <title>SkyPost — des drones qui apprennent la ville</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 16h24M16 4v24' stroke='%2338bdf8' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23fbbf24'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-mission="1">
+  <main id="scene" aria-label="Simulation SkyPost"></main>
+
+  <header id="hud" class="verre">
+    <div class="marque">
+      <svg class="sonar-icone" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M5 16h22M16 5v22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="5" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="27" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <circle cx="16" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="16" cy="27" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <circle cx="16" cy="16" r="3.4" fill="#fbbf24"/>
+      </svg>
+      <div>
+        <h1>SKYPOST</h1>
+        <p>des drones de livraison qui apprennent la ville</p>
+      </div>
+    </div>
+    <nav id="onglets" aria-label="Missions">
+      <button data-mission="1" class="actif"><span class="num">MISSION 1</span><b>Planifier</b><small>algorithme génétique</small></button>
+      <button data-mission="2"><span class="num">MISSION 2</span><b>Voler</b><small>path following</small></button>
+      <button data-mission="3"><span class="num">MISSION 3</span><b>Apprendre</b><small>neuroévolution</small></button>
+      <button data-mission="4"><span class="num">MISSION 4</span><b>Survivre</b><small>evolutionary steering</small></button>
+    </nav>
+  </header>
+
+  <div id="bandeau" class="verre" role="status"></div>
+
+  <nav id="commandes" class="verre" aria-label="Commandes">
+    <button id="btn-pause" class="icone" title="Pause / lecture (Espace)" aria-label="Pause">
+      <svg viewBox="0 0 24 24"><path id="icone-pause" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>
+    </button>
+    <div class="segments" role="group" aria-label="Vitesse">
+      <button data-vitesse="1" class="actif">1×</button>
+      <button data-vitesse="3">3×</button>
+      <button data-vitesse="8">8×</button>
+      <button data-vitesse="20">20×</button>
+    </div>
+    <span class="sep"></span>
+    <button id="btn-afficher" class="texte" title="Masquer la ville pour mieux voir les routes (V)">Vue épurée</button>
+    <button id="btn-aide" class="icone" title="Raccourcis (?)" aria-label="Aide">?</button>
+  </nav>
+
+  <button id="panneau-bouton" class="verre icone" title="Afficher / masquer le panneau (Tab)" aria-label="Panneau" aria-expanded="true">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+  </button>
+
+  <aside id="panneau" class="verre">
+
+    <!-- ===== Mission 1 : algorithme génétique ===== -->
+    <section class="mission" data-m="1">
+      <h2>Planifier la tournée</h2>
+      <p class="intro-mission">Dix livraisons médicales, une seule batterie. Dans quel ordre les visiter ? Une population de tournées évolue : les plus courtes se reproduisent, se croisent, mutent. Les rues fermées (pointillés rouges) rallongent certains trajets : la distance est calculée <b>par la route</b>.</p>
+      <div class="termes"><span class="terme">algorithme génétique</span><span class="terme">croisement OX</span><span class="terme">mutation</span><span class="terme">élitisme</span></div>
+      <div class="bloc">
+        <h3>Évolution <small id="g-etat">en cours</small></h3>
+        <dl class="chiffres">
+          <div><dt>Génération</dt><dd id="g-gen">0</dd></div>
+          <div class="bon"><dt>Meilleure tournée</dt><dd id="g-best">0</dd></div>
+          <div><dt>Tournée au hasard</dt><dd id="g-rand">0</dd></div>
+          <div class="bon"><dt>Gain</dt><dd id="g-gain">0 %</dd></div>
+        </dl>
+        <canvas id="c-genetique" class="courbe" aria-label="Longueur de la meilleure tournée par génération"></canvas>
+        <div class="legende"><span><i style="--c:#38bdf8"></i>meilleure</span><span><i style="--c:#64748b"></i>moyenne de la population</span></div>
+      </div>
+      <div class="bloc">
+        <h3>Réglages</h3>
+        <label class="reglage">Livraisons <output id="o-livraisons">10</output><input id="r-livraisons" type="range" min="5" max="16" step="1" value="10"></label>
+        <label class="reglage">Taux de mutation <output id="o-mutation">12 %</output><input id="r-mutation" type="range" min="0" max="60" step="1" value="12"></label>
+        <label class="reglage">Taille de la population <output id="o-population">120</output><input id="r-population" type="range" min="20" max="400" step="10" value="120"></label>
+        <div class="actions">
+          <button id="g-relancer" class="btn">Nouvelles livraisons</button>
+          <button id="g-ville" class="btn">Nouvelle ville</button>
+          <button id="g-envoyer" class="btn primaire">Envoyer les drones →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Mission 2 : path following ===== -->
+    <section class="mission" data-m="2">
+      <h2>Suivre la route</h2>
+      <p class="intro-mission">Les drones suivent la tournée trouvée à la mission 1. Pas de téléportation : seules des <b>forces</b> les guident, en suivant une polyligne.</p>
+      <div class="termes"><span class="terme">path following</span><span class="terme">projection scalaire</span><span class="terme">seek</span><span class="terme">arrive</span><span class="terme">separation</span></div>
+      <div class="bloc">
+        <h3>Comment un drone se guide</h3>
+        <ol class="etapes">
+          <li><b>Prédire</b> : où serai-je dans quelques instants ? (anneau blanc)</li>
+          <li><b>Projeter</b> cette position sur chaque tronçon : projection scalaire, t = (AP·AB) / |AB|² (point jaune, le pied de la perpendiculaire)</li>
+          <li><b>Viser</b> un point plus loin sur le chemin (croix rose) et faire <b>seek</b> dessus, seulement si on sort du couloir</li>
+          <li><b>Arriver</b> : freiner en douceur pour se poser sur la livraison</li>
+        </ol>
+      </div>
+      <div class="bloc">
+        <h3>Vol en cours <small id="v-etat"></small></h3>
+        <dl class="chiffres">
+          <div><dt>Livraisons faites</dt><dd id="v-liv">0 / 0</dd></div>
+          <div><dt>Distance parcourue</dt><dd id="v-dist">0</dd></div>
+          <div><dt>Écart moyen au chemin</dt><dd id="v-ecart">0</dd></div>
+          <div><dt>Écart maximal</dt><dd id="v-max">0</dd></div>
+        </dl>
+      </div>
+      <div class="bloc">
+        <h3>Affichage</h3>
+        <label class="bascule"><input type="checkbox" id="a-guide" checked><span></span>Prédiction, point normal et cible</label>
+        <label class="bascule"><input type="checkbox" id="a-couloir" checked><span></span>Couloir de tolérance</label>
+        <label class="bascule"><input type="checkbox" id="a-traces" checked><span></span>Traînées</label>
+        <label class="reglage">Nombre de drones <output id="o-nbdrones">2</output><input id="r-nbdrones" type="range" min="1" max="4" step="1" value="2"></label>
+        <div class="actions"><button id="v-relancer" class="btn primaire">Relancer le vol</button></div>
+      </div>
+    </section>
+
+    <!-- ===== Mission 3 : neuroévolution ===== -->
+    <section class="mission" data-m="3">
+      <h2>Apprendre à voler à l'aveugle</h2>
+      <p class="intro-mission">70 drones, aucune carte : seulement 9 télémètres, la direction de l'arrivée et leur vitesse. Leur cerveau est un réseau de neurones dont les poids <b>évoluent</b>. Chaque génération vole sur 3 terrains nouveaux, puis le meilleur passe un <b>examen à l'aveugle</b> sur des terrains qu'il n'a jamais vus.</p>
+      <div class="termes"><span class="terme">neuroévolution</span><span class="terme">réseau tanh</span><span class="terme">seek (vitesse désirée)</span><span class="terme">examen à l'aveugle</span></div>
+      <div class="bloc">
+        <h3>Promotion <small id="n-etat"></small></h3>
+        <dl class="chiffres">
+          <div><dt>Génération</dt><dd id="n-gen">1</dd></div>
+          <div><dt>Essai</dt><dd id="n-essai">1 / 3</dd></div>
+          <div><dt>Arrivés (génération précédente)</dt><dd id="n-arr">0 %</dd></div>
+          <div><dt>En vol</dt><dd id="n-vol">0</dd></div>
+        </dl>
+        <canvas id="c-neuro" class="courbe" aria-label="Taux d'arrivée par génération"></canvas>
+        <div class="legende"><span><i style="--c:#4ade80"></i>part de drones arrivés</span><span><i style="--c:#38bdf8"></i>meilleure fitness</span></div>
+        <div class="actions">
+          <button id="n-turbo" class="btn primaire">Entraîner 10 générations</button>
+          <button id="n-reset" class="btn">Nouvelle promotion</button>
+        </div>
+      </div>
+      <div class="bloc">
+        <h3>Le cerveau du meilleur <small>13 → 10 → 2</small></h3>
+        <canvas id="c-reseau" class="reseau" aria-label="Réseau de neurones du meilleur pilote"></canvas>
+        <div class="legende"><span><i style="--c:#fbbf24"></i>entrées (télémètres, cap, vitesse)</span><span><i style="--c:#a78bfa"></i>sorties (allure, virage)</span></div>
+      </div>
+      <div class="bloc">
+        <h3>Examen à l'aveugle <small id="n-brevet-etat"></small></h3>
+        <div class="pastilles" id="n-pastilles"></div>
+        <div class="actions"><button id="n-examen" class="btn primaire">Passer l'examen</button></div>
+        <div id="n-brevet"></div>
+      </div>
+    </section>
+
+    <!-- ===== Mission 4 : evolutionary steering ===== -->
+    <section class="mission" data-m="4">
+      <h2>Survivre : la batterie fait la loi</h2>
+      <p class="intro-mission">Des drones autonomes se partagent un ciel avec des colis, des chargeurs (3 places chacun) et des orages qui vident la batterie. Chacun a un <b>ADN</b> : le poids qu'il donne à chaque steering behavior. Les drones qui gardent leur batterie se reproduisent, avec mutation. Personne n'a écrit la stratégie : elle émerge.</p>
+      <div class="termes"><span class="terme">evolutionary steering</span><span class="terme">seek</span><span class="terme">arrive</span><span class="terme">flee</span><span class="terme">separation</span><span class="terme">wander</span></div>
+      <div class="bloc">
+        <h3>Écosystème <small id="e-temps">0:00</small></h3>
+        <dl class="chiffres">
+          <div><dt>Population</dt><dd id="e-pop">0</dd></div>
+          <div><dt>Lignée la plus longue</dt><dd id="e-gen">1</dd></div>
+          <div><dt>Livraisons</dt><dd id="e-liv">0</dd></div>
+          <div><dt>Batteries vides / orages</dt><dd id="e-morts">0 / 0</dd></div>
+        </dl>
+      </div>
+      <div class="bloc">
+        <h3>ADN moyen <small>de la population vivante</small></h3>
+        <div class="genes" id="e-genes"></div>
+        <canvas id="c-genes" class="courbe" aria-label="Évolution de l'ADN moyen"></canvas>
+      </div>
+      <div class="bloc">
+        <h3>Drone sélectionné</h3>
+        <div id="sel-info">Cliquez un drone pour lire son ADN, sa batterie et ses forces.</div>
+        <div class="actions"><button id="e-orage" class="btn">Ajouter un orage</button><button id="e-reset" class="btn">Nouvelle colonie</button></div>
+      </div>
+    </section>
+
+    <footer class="pied">Steering behaviors de Craig Reynolds · p5.js · projet 2 sur 2</footer>
+  </aside>
+
+  <div id="aide" class="voile" hidden>
+    <div class="carte verre">
+      <h2>Raccourcis</h2>
+      <dl class="raccourcis">
+        <div><dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></dt><dd>Changer de mission</dd></div>
+        <div><dt><kbd>Espace</kbd></dt><dd>Pause / lecture</dd></div>
+        <div><dt><kbd>R</kbd></dt><dd>Relancer la mission</dd></div>
+        <div><dt><kbd>V</kbd></dt><dd>Vue épurée (sans la ville)</dd></div>
+        <div><dt><kbd>Tab</kbd></dt><dd>Masquer / afficher le panneau</dd></div>
+        <div><dt><kbd>Échap</kbd></dt><dd>Fermer / désélectionner</dd></div>
+      </dl>
+      <button id="aide-fermer" class="texte">Fermer</button>
+    </div>
+  </div>
+
+  <div id="intro" class="voile">
+    <div class="intro-contenu">
+      <svg class="intro-sonar" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="7" fill="#fbbf24"/>
+        <circle class="onde o1" cx="100" cy="100" r="30" fill="none" stroke="currentColor"/>
+        <circle class="onde o2" cx="100" cy="100" r="30" fill="none" stroke="currentColor"/>
+        <circle class="onde o3" cx="100" cy="100" r="30" fill="none" stroke="currentColor"/>
+      </svg>
+      <h1>SKYPOST</h1>
+      <p class="accroche">Une flotte de drones de livraison médicale.<br>Ils planifient, volent, apprennent et survivent.</p>
+      <ul class="intro-liste">
+        <li><b>1 · Planifier</b> — l'ordre des livraisons évolue <span>algorithme génétique</span></li>
+        <li><b>2 · Voler</b> — suivre la route calculée <span>path following · projection scalaire · arrive</span></li>
+        <li><b>3 · Apprendre</b> — piloter à l'aveugle, puis passer l'examen <span>neuroévolution</span></li>
+        <li><b>4 · Survivre</b> — la batterie décide qui se reproduit <span>evolutionary steering</span></li>
+      </ul>
+      <button id="intro-entrer" class="grand">Décoller</button>
+      <p class="intro-pied">Astuce : chaque mission a ses réglages dans le panneau de droite.</p>
+    </div>
+  </div>
+
+  <script src="lib/p5.min.js"></script>
+  <script src="src/rng.js"></script>
+  <script src="src/config.js"></script>
+  <script src="src/vehicle.js"></script>
+  <script src="src/path.js"></script>
+  <script src="src/city.js"></script>
+  <script src="src/genetic.js"></script>
+  <script src="src/drone.js"></script>
+  <script src="src/neuro.js"></script>
+  <script src="src/arene.js"></script>
+  <script src="src/pilote.js"></script>
+  <script src="src/ecole.js"></script>
+  <script src="src/adn.js"></script>
+  <script src="src/drone-evo.js"></script>
+  <script src="src/colonie.js"></script>
+  <script src="src/rendu.js"></script>
+  <script src="src/vue-ville.js"></script>
+  <script src="src/vue-ecole.js"></script>
+  <script src="src/vue-colonie.js"></script>
+  <script src="src/ui.js"></script>
+  <script src="src/sketch.js"></script>
+</body>
+</html>
