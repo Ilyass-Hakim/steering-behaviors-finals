@@ -25,8 +25,8 @@ const CONFIG = {
 
   // Mission 3 — neuroévolution
   neuro: {
-    population: 70, mutation: 0.12, amplitude: 0.35, elitisme: 3,
-    capteurs: 7, ouverture: 2.2, portee: 150, cachees: 8,
+    population: 70, mutation: 0.08, amplitude: 0.25, elitisme: 5,
+    capteurs: 9, ouverture: 2.6, portee: 240, cachees: 10,
     pasParEssai: 900, essais: 3, examens: 8,
   },
 
