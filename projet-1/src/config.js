@@ -24,18 +24,27 @@ const CONFIG = {
     forceFuite: 0.17,
   },
 
+  hibou: {
+    vitesseMax: 2.7,
+    forceMax: 0.06,          // lourd : il tourne lentement
+    rayonPanique: 300,       // distance à laquelle les chauves-souris le fuient
+    duree: 22,               // secondes passées dans la grotte avant de repartir
+  },
+
   // Poids de chaque force dans la somme des comportements, selon l'état de la chauve-souris
   poids: {
     commun: { avoid: 2.0, contention: 0.8 },
     sortie: { separation: 1.8, alignment: 1.0, cohesion: 0.8, seek: 1.3 },
     errance: { wander: 1.0, separation: 1.1, alignment: 0.12, cohesion: 0.04 },
     chasse: { pursue: 1.7, seek: 1.7, separation: 0.9 },
+    fuite: { flee: 2.8, separation: 0.7, alignment: 0.8 },
     papillon: { wander: 1.0, avoid: 2.0, contention: 0.8 },
     papillonFuite: { evade: 2.2, wander: 0.15, avoid: 2.2, contention: 0.9 },
   },
 
   // Durée de chaque phase du cycle de la nuit (secondes simulées)
   cycle: { crepuscule: 16, nuit: 60 },
+  hibouApparitionNuit: [18, 34],     // le hibou entre entre ces deux dates (s) de la nuit
 
   // Couleur de chaque force (légende, vecteurs, jauges de l'inspecteur)
   couleurs: {
