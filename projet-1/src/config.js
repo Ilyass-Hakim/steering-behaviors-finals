@@ -15,12 +15,15 @@ const CONFIG = {
     energieDepart: 0.8,
   },
 
-  // Poids de chaque force dans la somme des comportements d'une chauve-souris
+  // Poids de chaque force dans la somme des comportements, selon l'état de la chauve-souris
   poids: {
-    wander: 1.0,
-    avoid: 2.0,
-    contention: 0.8,
+    commun: { avoid: 2.0, contention: 0.8 },
+    sortie: { separation: 1.8, alignment: 1.0, cohesion: 0.8, seek: 1.3 },
+    errance: { wander: 1.0, separation: 1.1, alignment: 0.12, cohesion: 0.04 },
   },
+
+  // Durée de chaque phase du cycle de la nuit (secondes simulées)
+  cycle: { crepuscule: 16, nuit: 60 },
 
   // Couleur de chaque force (légende, vecteurs, jauges de l'inspecteur)
   couleurs: {

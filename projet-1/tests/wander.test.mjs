@@ -88,6 +88,7 @@ test('monde : 36 chauves-souris en errance 3000 pas restent dans la grotte', () 
 
 test('monde : au repos, les chauves-souris ne bougent pas', () => {
   const m = new Monde(CONFIG.graine, 10);
+  for (const b of m.chauvesSouris) b.delaiDepart = 0;     // personne ne décolle
   const avant = m.chauvesSouris.map((b) => [b.pos.x, b.pos.y]);
   for (let i = 0; i < 100; i++) m.pas();
   m.chauvesSouris.forEach((b, i) => assert.deepEqual([b.pos.x, b.pos.y], avant[i]));
