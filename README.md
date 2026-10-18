@@ -95,6 +95,8 @@ npm test                                  # tests unitaires, aucune dépendance
 
 Ou simplement ouvrir `index.html` dans un navigateur.
 
+**Hébergement :** le dépôt est un site statique prêt pour Cloudflare (`wrangler.jsonc`, `.assetsignore`, `_headers`). La page d'accueil `index.html` renvoie vers `projet-1/` et `projet-2/`.
+
 ---
 
 ## ⌬ Vue d'ensemble
