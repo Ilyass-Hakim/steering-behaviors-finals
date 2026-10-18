@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Deux simulations p5.js de steering behaviors : Écho (chauves-souris et sonar) et SkyPost (drones qui apprennent une ville).">
+  <title>Steering Behaviors — Écho & SkyPost</title>
+  <meta property="og:title" content="Steering Behaviors — Écho & SkyPost">
+  <meta property="og:description" content="Des chauves-souris qui voient avec des échos, des drones qui apprennent une ville.">
+  <meta property="og:image" content="docs/images/echo-nuit.png">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23b79cff'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%2338bdf8' stroke-width='2'/%3E%3C/svg%3E">
+  <style>
+    :root { --fond:#05070e; --texte:#d9def0; --discret:#8b93b3; --bord:rgba(255,255,255,.09); }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.6 "Inter","Segoe UI",system-ui,sans-serif; -webkit-font-smoothing: antialiased; }
+    body { min-height: 100vh; background: radial-gradient(ellipse at 50% -10%, #1b1742 0%, transparent 55%), radial-gradient(ellipse at 90% 110%, #0a2a40 0%, transparent 50%), var(--fond); }
+    main { max-width: 1120px; margin: 0 auto; padding: 72px 20px 48px; }
+    header { text-align: center; margin-bottom: 56px; }
+    h1 { margin: 0; font-size: clamp(34px, 7vw, 64px); letter-spacing: .28em; padding-left: .28em; background: linear-gradient(180deg, #fff 25%, #8b7fd6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sous { color: var(--discret); max-width: 620px; margin: 16px auto 0; font-size: 17px; }
+    .cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    a.carte { display: block; color: inherit; text-decoration: none; border: 1px solid var(--bord); border-radius: 20px; overflow: hidden; background: rgba(12,14,26,.7); transition: transform .25s, border-color .25s, box-shadow .25s; }
+    a.carte:hover, a.carte:focus-visible { transform: translateY(-4px); border-color: var(--c); box-shadow: 0 20px 60px -20px var(--c); outline: none; }
+    a.carte img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: left top; border-bottom: 1px solid var(--bord); }
+    .corps { padding: 22px 24px 26px; }
+    .num { font: 11px ui-monospace, monospace; letter-spacing: .14em; color: var(--c); text-transform: uppercase; }
+    h2 { margin: 6px 0 8px; font-size: 26px; letter-spacing: .12em; }
+    .corps p { margin: 0 0 14px; color: var(--discret); }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+    .tags span { font: 11px ui-monospace, monospace; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--bord); color: var(--c); background: color-mix(in srgb, var(--c) 9%, transparent); }
+    .go { font-weight: 600; color: #fff; }
+    .go::after { content: " →"; transition: margin .2s; }
+    a.carte:hover .go::after { margin-left: 6px; }
+    footer { text-align: center; color: var(--discret); font-size: 13px; margin-top: 56px; }
+    footer a { color: var(--texte); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>STEERING BEHAVIORS</h1>
+      <p class="sous">Deux simulations, quatorze comportements, aucune téléportation : tout est piloté par des <b>forces</b>, comme Craig Reynolds l'a imaginé.</p>
+    </header>
+
+    <section class="cartes">
+      <a class="carte" href="projet-1/" style="--c:#b79cff">
+        <img src="docs/images/echo-nuit.png" alt="Écho : une grotte noire révélée par le sonar des chauves-souris" loading="lazy">
+        <div class="corps">
+          <div class="num">Projet 1</div>
+          <h2>ÉCHO</h2>
+          <p>Une nuit de chauves-souris dans une grotte noire. On ne voit que ce que leur sonar révèle.</p>
+          <div class="tags"><span>wander</span><span>obstacle avoidance</span><span>boids</span><span>seek</span><span>pursue</span><span>evade</span><span>flee</span><span>arrive</span></div>
+          <span class="go">Entrer dans la grotte</span>
+        </div>
+      </a>
+      <a class="carte" href="projet-2/" style="--c:#38bdf8">
+        <img src="docs/images/skypost-m2.png" alt="SkyPost : des drones de livraison suivent leur tournée" loading="lazy">
+        <div class="corps">
+          <div class="num">Projet 2</div>
+          <h2>SKYPOST</h2>
+          <p>Des drones de livraison médicale qui planifient, volent, apprennent et survivent.</p>
+          <div class="tags"><span>algorithme génétique</span><span>path following</span><span>neuroévolution</span><span>evolutionary steering</span></div>
+          <span class="go">Décoller</span>
+        </div>
+      </a>
+    </section>
+
+    <footer>
+      p5.js · <a href="https://github.com/Ilyass-Hakim/steering-behaviors-finals">code source sur GitHub</a>
+    </footer>
+  </main>
+</body>
+</html>

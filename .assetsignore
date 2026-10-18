@@ -1,0 +1,8 @@
+.git
+.gitignore
+node_modules
+tests
+package.json
+wrangler.jsonc
+.assetsignore
+*.md
